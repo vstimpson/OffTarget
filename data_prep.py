@@ -1,4 +1,4 @@
-"""Build the drug x side-effect fingerprint matrix used by SideMatch.
+"""Build the drug x side-effect fingerprint matrix used by OffTarget.
 
 Two data sources are supported, tried in this order:
 
