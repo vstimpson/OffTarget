@@ -7,13 +7,19 @@ shared underlying biological mechanism.
 """
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+import streamlit.components.v1 as components
 
 from similarity import load_matrix, similarity_matrix, top_n_similar
 
 CLINICAL_SCALE = ["#F8FAFC", "#CCFBF1", "#5EEAD4", "#0D9488", "#134E4A"]
+STRUCTURES_DIR = Path("data/structures")
+VIEWER_JS_PATH = Path("assets/3Dmol-min.js")
 
 CASE_STUDIES = [
     {
@@ -205,6 +211,44 @@ def render_fingerprint_heatmap(matrix: pd.DataFrame, query: str, results: pd.Dat
     st.plotly_chart(fig, use_container_width=True)
 
 
+@st.cache_resource
+def get_viewer_js() -> str:
+    """3Dmol.js, vendored locally (BSD-3-Clause, see assets/3Dmol-LICENSE.txt).
+
+    Loaded from disk once and inlined into every viewer's HTML rather than
+    fetched from a CDN, so rendering works with no runtime network access.
+    """
+    return VIEWER_JS_PATH.read_text()
+
+
+def render_structure_3d(drug: str, height: int = 260) -> None:
+    mol_path = STRUCTURES_DIR / f"{drug}.mol"
+    if not mol_path.exists():
+        st.caption(f"3D structure not available for {drug}.")
+        return
+    mol_block = json.dumps(mol_path.read_text())
+    html = f"""
+    <div id="viewer" style="width:{height}px;height:{height}px;"></div>
+    <script>{get_viewer_js()}</script>
+    <script>
+      const viewer = $3Dmol.createViewer(document.getElementById("viewer"), {{backgroundColor: "#F8FAFC"}});
+      viewer.addModel({mol_block}, "mol");
+      viewer.setStyle({{}}, {{stick: {{colorscheme: "cyanCarbon", radius: 0.15}}}});
+      viewer.zoomTo();
+      viewer.render();
+    </script>
+    """
+    components.html(html, height=height, width=height)
+
+
+def render_structure_row(drugs: list[str], height: int = 220) -> None:
+    cols = st.columns(len(drugs))
+    for col, drug in zip(cols, drugs):
+        with col:
+            st.markdown(f"**{drug}**")
+            render_structure_3d(drug, height=height)
+
+
 def search_tab(matrix: pd.DataFrame) -> None:
     st.subheader("Find repurposing candidates by side-effect similarity")
     st.write(
@@ -243,6 +287,14 @@ def search_tab(matrix: pd.DataFrame) -> None:
     with st.expander("View as data table"):
         st.dataframe(results, use_container_width=True, hide_index=True)
 
+    with st.expander("3D structures: query vs. top matches", expanded=False):
+        st.caption(
+            "Rotate and zoom each structure. Side-effect similarity is a "
+            "phenotypic signal, not a chemical one -- these compounds can "
+            "(and often do) look nothing alike structurally."
+        )
+        render_structure_row([drug] + list(results["drug_name"][:4]))
+
 
 def case_studies_tab(matrix: pd.DataFrame) -> None:
     st.subheader("Does side-effect similarity recover known repurposing discoveries?")
@@ -277,6 +329,7 @@ def case_studies_tab(matrix: pd.DataFrame) -> None:
                         f"Recovered: **{relative}** ranked #{rank} "
                         f"with {score:.1%} Jaccard similarity."
                     )
+                render_structure_row([case["drug"]] + hits)
             else:
                 st.warning(
                     f"None of {', '.join(case['known_relatives'])} appear in "
@@ -320,6 +373,12 @@ def about_tab(matrix: pd.DataFrame) -> None:
         use the real SIDER TSVs instead if you download `meddra_all_se.tsv.gz`
         and `drug_names.tsv` from SIDER and place them in `data/raw/` --
         no code changes required.
+
+        **3D structures.** Each drug's structure is generated offline from a
+        curated SMILES string with RDKit, validated against its expected
+        molecular formula, and rendered with a locally vendored copy of
+        3Dmol.js -- no CDN or live structure-database lookup involved. See
+        the README for the full pipeline and its accuracy caveats.
 
         **Limitations.** The demo dataset is illustrative, not exhaustive --
         absence of a shared side effect here means it wasn't included in
