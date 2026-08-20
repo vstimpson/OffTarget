@@ -1,4 +1,4 @@
-"""SideMatch: drug repurposing candidate finder via side-effect similarity.
+"""OffTarget: drug repurposing candidate finder via side-effect similarity.
 
 Streamlit entrypoint. Compares drugs' side-effect "fingerprints" (SIDER-style
 binary vectors) to surface repurposing leads -- drugs used for unrelated
@@ -73,7 +73,7 @@ CASE_STUDIES = [
 
 
 st.set_page_config(
-    page_title="SideMatch",
+    page_title="OffTarget",
     page_icon=":material/biotech:",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -208,7 +208,7 @@ def render_fingerprint_heatmap(matrix: pd.DataFrame, query: str, results: pd.Dat
 def search_tab(matrix: pd.DataFrame) -> None:
     st.subheader("Find repurposing candidates by side-effect similarity")
     st.write(
-        "Pick a drug and SideMatch will rank every other drug in the "
+        "Pick a drug and OffTarget will rank every other drug in the "
         "dataset by how similar its side-effect profile is -- regardless "
         "of what disease either drug is actually used for."
     )
@@ -335,7 +335,7 @@ def about_tab(matrix: pd.DataFrame) -> None:
 
 def main() -> None:
     inject_css()
-    st.title("SideMatch")
+    st.title("OffTarget")
     st.caption(
         "Drug repurposing candidates via side-effect similarity, in the "
         "spirit of the SIDER database."
@@ -344,7 +344,7 @@ def main() -> None:
     matrix = get_matrix()
 
     with st.sidebar:
-        st.markdown("### About SideMatch")
+        st.markdown("### About OffTarget")
         st.write(
             "Search a drug to find others with the most similar reported "
             "side-effect profile -- potential repurposing leads driven by "
@@ -356,7 +356,7 @@ def main() -> None:
         )
         st.markdown(
             "Built on a SIDER-style methodology. "
-            "[Source](https://github.com/vstimpson/SideMatch)"
+            "[Source](https://github.com/vstimpson/OffTarget)"
         )
 
     tab1, tab2, tab3 = st.tabs(["Search", "Validated Case Studies", "Methodology"])

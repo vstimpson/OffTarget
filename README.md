@@ -1,8 +1,8 @@
-# SideMatch
+# OffTarget
 
 **Drug repurposing candidate discovery via side-effect similarity.**
 
-SideMatch is a Streamlit app that compares drugs by their side-effect
+OffTarget is a Streamlit app that compares drugs by their side-effect
 profiles, in the spirit of the [SIDER database](http://sideeffects.embl.de/)
 (Side Effect Resource). The core idea: two drugs that cause a similar
 *pattern* of side effects often act on the same underlying biology, even
@@ -10,7 +10,7 @@ when they're prescribed for completely unrelated diseases. That overlap can
 surface repurposing candidates that indication-based search would never
 suggest — this is, in fact, how several real drugs were discovered.
 
-[Live app](https://github.com/vstimpson/SideMatch) · Built as a data science
+[Live app](https://github.com/vstimpson/OffTarget) · Built as a data science
 portfolio project.
 
 ## How it works
@@ -36,7 +36,7 @@ portfolio project.
 ## Project structure
 
 ```
-SideMatch/
+OffTarget/
 ├── app.py              # Streamlit entrypoint (search UI, viz, case studies)
 ├── data_prep.py         # Parses raw data into a clean drug x side-effect matrix
 ├── similarity.py         # Jaccard/cosine similarity, top-N lookup
@@ -47,7 +47,7 @@ SideMatch/
 │       ├── drug_side_effect_matrix.parquet
 │       └── drug_side_effect_matrix.csv
 ├── .streamlit/
-│   └── config.toml       # deep purple/lavender theme
+│   └── config.toml       # clinical teal/slate theme
 ├── requirements.txt
 └── README.md
 ```
@@ -57,7 +57,7 @@ SideMatch/
 The full [SIDER database](http://sideeffects.embl.de/downloads/) maps
 ~1,400 drugs to tens of thousands of side-effect terms extracted from
 public drug labels. This project's development environment couldn't reach
-`sideeffects.embl.de` directly (no outbound network access), so SideMatch
+`sideeffects.embl.de` directly (no outbound network access), so OffTarget
 ships with a **curated demo dataset** instead:
 
 - 61 drugs across diverse therapeutic classes (PDE5 inhibitors, SSRIs/SNRIs,
