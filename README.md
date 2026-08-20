@@ -54,7 +54,7 @@ OffTarget/
 │   ├── processed/
 │   │   ├── drug_side_effect_matrix.parquet
 │   │   └── drug_side_effect_matrix.csv
-│   └── structures/        # generated .mol files (3D conformers)
+│   └── structures/        # generated .mol files (3D conformers) + properties.csv
 ├── assets/
 │   ├── 3Dmol-min.js       # vendored 3Dmol.js viewer library (BSD-3-Clause)
 │   └── 3Dmol-LICENSE.txt
@@ -104,11 +104,16 @@ reason: this development environment couldn't reach PubChem or RCSB either.
    cross-checks the resulting molecular formula against the expected one
    (catching typos/invalid structures automatically), generates a 3D
    conformer (ETKDG embedding + MMFF94 optimization), and saves it to
-   `data/structures/<drug>.mol`.
-3. `app.py` renders these `.mol` files with [3Dmol.js](https://3dmol.org/),
+   `data/structures/<drug>.mol`. It also computes a set of standard
+   cheminformatics descriptors for each drug -- molecular weight, LogP,
+   H-bond donor/acceptor counts, topological polar surface area (TPSA),
+   rotatable bond count, and ring count -- and writes them to
+   `data/structures/properties.csv`.
+3. `app.py` renders the `.mol` files with [3Dmol.js](https://3dmol.org/),
    vendored locally in `assets/` (BSD-3-Clause) rather than loaded from a
-   CDN — the viewer needs no network access at all, at build time or
-   runtime.
+   CDN, and displays each drug's formula and computed properties alongside
+   its structure -- the viewer needs no network access at all, at build
+   time or runtime.
 
 **Accuracy caveat:** SMILES were compiled from training knowledge, not
 cross-checked against a live structure database (same constraint as the
