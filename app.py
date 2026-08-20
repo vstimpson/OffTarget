@@ -13,7 +13,7 @@ import streamlit as st
 
 from similarity import load_matrix, similarity_matrix, top_n_similar
 
-PURPLE_SCALE = ["#FAF8FF", "#DDD6FE", "#A78BFA", "#7C3AED", "#4C1D95"]
+CLINICAL_SCALE = ["#F8FAFC", "#CCFBF1", "#5EEAD4", "#0D9488", "#134E4A"]
 
 CASE_STUDIES = [
     {
@@ -74,7 +74,7 @@ CASE_STUDIES = [
 
 st.set_page_config(
     page_title="SideMatch",
-    page_icon="\U0001F48A",
+    page_icon=":material/biotech:",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -84,20 +84,20 @@ def inject_css() -> None:
     st.markdown(
         """
         <style>
-        .stApp { background-color: #FAF8FF; }
-        h1, h2, h3 { color: #4C1D95; }
+        .stApp { background-color: #F8FAFC; }
+        h1, h2, h3 { color: #1E293B; }
         .sm-card {
             background: #FFFFFF;
-            border: 1px solid #DDD6FE;
+            border: 1px solid #CBD5E1;
             border-radius: 12px;
             padding: 1rem 1.25rem;
             margin-bottom: 0.75rem;
-            box-shadow: 0 1px 3px rgba(76, 29, 149, 0.08);
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
         }
-        .sm-card h4 { margin: 0 0 0.25rem 0; color: #4C1D95; }
+        .sm-card h4 { margin: 0 0 0.25rem 0; color: #1E293B; }
         .sm-score {
             display: inline-block;
-            background: #7C3AED;
+            background: #0D9488;
             color: white;
             border-radius: 999px;
             padding: 0.1rem 0.7rem;
@@ -106,14 +106,14 @@ def inject_css() -> None:
         }
         .sm-tag {
             display: inline-block;
-            background: #EDE9FE;
-            color: #4C1D95;
+            background: #E2E8F0;
+            color: #0F172A;
             border-radius: 6px;
             padding: 0.1rem 0.5rem;
             margin: 0.1rem 0.2rem 0 0;
             font-size: 0.8rem;
         }
-        .sm-caption { color: #6B7280; font-size: 0.85rem; }
+        .sm-caption { color: #64748B; font-size: 0.85rem; }
         </style>
         """,
         unsafe_allow_html=True,
@@ -155,7 +155,7 @@ def render_score_chart(results: pd.DataFrame, query: str) -> None:
             x=results["similarity"][::-1],
             y=results["drug_name"][::-1],
             orientation="h",
-            marker=dict(color=results["similarity"][::-1], colorscale=PURPLE_SCALE),
+            marker=dict(color=results["similarity"][::-1], colorscale=CLINICAL_SCALE),
             text=[f"{v:.1%}" for v in results["similarity"][::-1]],
             textposition="outside",
         )
@@ -188,7 +188,7 @@ def render_fingerprint_heatmap(matrix: pd.DataFrame, query: str, results: pd.Dat
             z=sub.values,
             x=sub.columns,
             y=sub.index,
-            colorscale=[[0, "#FAF8FF"], [1, "#7C3AED"]],
+            colorscale=[[0, "#F8FAFC"], [1, "#0D9488"]],
             showscale=False,
             xgap=2,
             ygap=2,
@@ -274,7 +274,7 @@ def case_studies_tab(matrix: pd.DataFrame) -> None:
                     rank = ranked.index(relative) + 1
                     score = results.loc[results["drug_name"] == relative, "similarity"].iloc[0]
                     st.success(
-                        f"✓ Recovered: **{relative}** ranked #{rank} "
+                        f"Recovered: **{relative}** ranked #{rank} "
                         f"with {score:.1%} Jaccard similarity."
                     )
             else:
@@ -335,7 +335,7 @@ def about_tab(matrix: pd.DataFrame) -> None:
 
 def main() -> None:
     inject_css()
-    st.title("\U0001F48A SideMatch")
+    st.title("SideMatch")
     st.caption(
         "Drug repurposing candidates via side-effect similarity, in the "
         "spirit of the SIDER database."
