@@ -13,6 +13,26 @@ suggest — this is, in fact, how several real drugs were discovered.
 [Live app](https://github.com/vstimpson/OffTarget) · Built as a data science
 portfolio project.
 
+## Why this matters
+
+Drug development is slow and expensive, but *repurposing* an
+already-approved drug skips most of that cost — its safety profile,
+dosing, and manufacturing are already established, so a new indication can
+go almost straight to efficacy trials instead of starting over. The catch
+is finding good repurposing candidates in the first place: traditional
+searches start from a known mechanism or indication, which means they can
+only find what's already understood.
+
+Side-effect similarity offers a cheap, data-driven alternative that needs
+no prior knowledge of mechanism. It found Tadalafil and Vardenafil as
+Sildenafil's relatives purely from overlapping side effects, without ever
+being told "these are all PDE5 inhibitors" — the kind of non-obvious lead
+that indication- or target-based search would miss entirely. The tradeoff
+is that it's a hypothesis generator, not a validator: a high similarity
+score means "worth investigating," not "will work." That's the reason the
+**Validated Case Studies** tab exists — to confirm the method recovers
+*known* good leads before trusting it on unknown ones.
+
 ## How it works
 
 1. **Fingerprint each drug.** Every drug is represented as a binary vector
