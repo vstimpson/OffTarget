@@ -32,20 +32,32 @@ portfolio project.
    method is doing something reasonable, it should rank those drugs'
    real-world mechanistic relatives near the top of their own similarity
    lists. See the **Validated Case Studies** tab in the app.
+5. **Visualize the structures.** Each drug's 3D structure is rendered
+   alongside its similarity results, making the central point visible:
+   side-effect similarity is a *phenotypic* signal, independent of chemical
+   scaffold. The PDE5 inhibitors happen to look alike (they're a real
+   chemical class); minoxidil and hydralazine don't, despite sharing a
+   cardiovascular side-effect signature from the same mechanism.
 
 ## Project structure
 
 ```
 OffTarget/
-├── app.py              # Streamlit entrypoint (search UI, viz, case studies)
-├── data_prep.py         # Parses raw data into a clean drug x side-effect matrix
-├── similarity.py         # Jaccard/cosine similarity, top-N lookup
+├── app.py                # Streamlit entrypoint (search UI, viz, case studies)
+├── data_prep.py           # Parses raw data into a clean drug x side-effect matrix
+├── similarity.py           # Jaccard/cosine similarity, top-N lookup
+├── structures_prep.py     # Builds validated 3D conformers from SMILES
 ├── data/
 │   ├── raw/
-│   │   └── demo_side_effects.csv   # curated demo dataset (default source)
-│   └── processed/
-│       ├── drug_side_effect_matrix.parquet
-│       └── drug_side_effect_matrix.csv
+│   │   ├── demo_side_effects.csv   # curated demo dataset (default source)
+│   │   └── drug_smiles.csv          # curated SMILES for 3D structures
+│   ├── processed/
+│   │   ├── drug_side_effect_matrix.parquet
+│   │   └── drug_side_effect_matrix.csv
+│   └── structures/        # generated .mol files (3D conformers)
+├── assets/
+│   ├── 3Dmol-min.js       # vendored 3Dmol.js viewer library (BSD-3-Clause)
+│   └── 3Dmol-LICENSE.txt
 ├── .streamlit/
 │   └── config.toml       # clinical teal/slate theme
 ├── requirements.txt
@@ -79,6 +91,35 @@ python data_prep.py
 `data_prep.py` automatically prefers the real SIDER files over the demo
 dataset when both are present — no code changes needed.
 
+## 3D structures
+
+Each drug's 3D structure comes from a fully offline, one-time pipeline —
+consistent with how the side-effect data is handled, and for the same
+reason: this development environment couldn't reach PubChem or RCSB either.
+
+1. `data/raw/drug_smiles.csv` holds a curated SMILES string and expected
+   molecular formula for each drug, compiled from public chemical
+   references.
+2. `structures_prep.py` parses each SMILES with [RDKit](https://www.rdkit.org/),
+   cross-checks the resulting molecular formula against the expected one
+   (catching typos/invalid structures automatically), generates a 3D
+   conformer (ETKDG embedding + MMFF94 optimization), and saves it to
+   `data/structures/<drug>.mol`.
+3. `app.py` renders these `.mol` files with [3Dmol.js](https://3dmol.org/),
+   vendored locally in `assets/` (BSD-3-Clause) rather than loaded from a
+   CDN — the viewer needs no network access at all, at build time or
+   runtime.
+
+**Accuracy caveat:** SMILES were compiled from training knowledge, not
+cross-checked against a live structure database (same constraint as the
+side-effect data). The automated formula check catches gross errors —
+several genuinely wrong structures were caught and fixed this way during
+development — but it doesn't guarantee full stereochemical or connectivity
+correctness for more complex molecules. One drug in the dataset
+(oxycodone) is excluded from this feature entirely because its structure
+couldn't be confidently validated. Treat the 3D views as illustrative, not
+as a certified structure database.
+
 ## Validated case studies
 
 Three documented repurposing stories are used to sanity-check the method
@@ -106,6 +147,8 @@ the result.
   conventions, or reporting bias in the source data.
 - Results are hypothesis-generating leads for further investigation, not
   clinical or pharmacological conclusions.
+- 3D structures are illustrative (see the caveat above) and one drug
+  (oxycodone) has no 3D structure available.
 
 ## Running locally
 
@@ -120,6 +163,17 @@ python data_prep.py               # build the processed matrix (auto-run by app.
 streamlit run app.py
 ```
 
+The generated 3D structures in `data/structures/` are already checked into
+the repo, so no extra step is needed to see them. To regenerate them (e.g.
+after editing `data/raw/drug_smiles.csv`), install RDKit separately — it's
+a data-prep tool, not a runtime dependency, so it's not in
+`requirements.txt` — and re-run the pipeline:
+
+```bash
+pip install rdkit
+python structures_prep.py
+```
+
 ## Deployment
 
 Deployed on [Streamlit Community Cloud](https://streamlit.io/cloud) by
@@ -128,4 +182,4 @@ package versions so the cloud environment matches local development.
 
 ## Tech stack
 
-Python · Streamlit · pandas · NumPy · Plotly · PyArrow
+Python · Streamlit · pandas · NumPy · Plotly · PyArrow · RDKit (data prep) · 3Dmol.js
