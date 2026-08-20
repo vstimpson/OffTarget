@@ -20,6 +20,7 @@ from similarity import load_matrix, similarity_matrix, top_n_similar
 CLINICAL_SCALE = ["#F8FAFC", "#CCFBF1", "#5EEAD4", "#0D9488", "#134E4A"]
 STRUCTURES_DIR = Path("data/structures")
 VIEWER_JS_PATH = Path("assets/3Dmol-min.js")
+PROPERTIES_PATH = STRUCTURES_DIR / "properties.csv"
 
 CASE_STUDIES = [
     {
@@ -211,6 +212,11 @@ def render_fingerprint_heatmap(matrix: pd.DataFrame, query: str, results: pd.Dat
     st.plotly_chart(fig, use_container_width=True)
 
 
+@st.cache_data
+def get_properties() -> pd.DataFrame:
+    return pd.read_csv(PROPERTIES_PATH).set_index("drug_name")
+
+
 @st.cache_resource
 def get_viewer_js() -> str:
     """3Dmol.js, vendored locally (BSD-3-Clause, see assets/3Dmol-LICENSE.txt).
@@ -241,12 +247,27 @@ def render_structure_3d(drug: str, height: int = 260) -> None:
     components.html(html, height=height, width=height)
 
 
+def render_properties(drug: str, properties: pd.DataFrame) -> None:
+    if drug not in properties.index:
+        return
+    p = properties.loc[drug]
+    st.markdown(f"`{p['molecular_formula']}`")
+    st.caption(
+        f"MW {p['molecular_weight']:.1f} · LogP {p['logp']:.2f}  \n"
+        f"H-bond donors/acceptors: {int(p['h_bond_donors'])}/{int(p['h_bond_acceptors'])}  \n"
+        f"TPSA {p['tpsa']:.1f} Å² · Rotatable bonds {int(p['rotatable_bonds'])} · "
+        f"Rings {int(p['ring_count'])}"
+    )
+
+
 def render_structure_row(drugs: list[str], height: int = 220) -> None:
+    properties = get_properties()
     cols = st.columns(len(drugs))
     for col, drug in zip(cols, drugs):
         with col:
             st.markdown(f"**{drug}**")
             render_structure_3d(drug, height=height)
+            render_properties(drug, properties)
 
 
 def search_tab(matrix: pd.DataFrame) -> None:
@@ -377,8 +398,11 @@ def about_tab(matrix: pd.DataFrame) -> None:
         **3D structures.** Each drug's structure is generated offline from a
         curated SMILES string with RDKit, validated against its expected
         molecular formula, and rendered with a locally vendored copy of
-        3Dmol.js -- no CDN or live structure-database lookup involved. See
-        the README for the full pipeline and its accuracy caveats.
+        3Dmol.js -- no CDN or live structure-database lookup involved.
+        Molecular weight, LogP, H-bond donor/acceptor counts, TPSA,
+        rotatable bond count, and ring count are computed the same way and
+        shown alongside each structure. See the README for the full
+        pipeline and its accuracy caveats.
 
         **Limitations.** The demo dataset is illustrative, not exhaustive --
         absence of a shared side effect here means it wasn't included in
