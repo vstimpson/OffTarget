@@ -1,4 +1,4 @@
-"""Side-effect similarity logic for SideMatch.
+"""Side-effect similarity logic for OffTarget.
 
 Drugs are represented as binary side-effect fingerprints (one row per drug in
 the matrix built by data_prep.py). Similarity between two fingerprints is
