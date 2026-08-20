@@ -1,0 +1,409 @@
+drug_name,side_effect
+Alprazolam,somnolence
+Alprazolam,dizziness
+Alprazolam,dependence
+Alprazolam,ataxia
+Alprazolam,dry mouth
+Alprazolam,cognitive impairment
+Amlodipine,peripheral edema
+Amlodipine,headache
+Amlodipine,flushing
+Amlodipine,dizziness
+Amlodipine,fatigue
+Amlodipine,palpitations
+Amoxicillin,diarrhea
+Amoxicillin,nausea
+Amoxicillin,rash
+Amoxicillin,vomiting
+Amoxicillin,abdominal pain
+Aspirin,dyspepsia
+Aspirin,bleeding
+Aspirin,tinnitus
+Aspirin,nausea
+Aspirin,bruising
+Aspirin,gastric ulcer
+Atorvastatin,myalgia
+Atorvastatin,headache
+Atorvastatin,diarrhea
+Atorvastatin,nausea
+Atorvastatin,elevated liver enzymes
+Atorvastatin,arthralgia
+Atorvastatin,nasopharyngitis
+Azithromycin,diarrhea
+Azithromycin,nausea
+Azithromycin,abdominal pain
+Azithromycin,headache
+Azithromycin,vomiting
+Bupropion,insomnia
+Bupropion,dry mouth
+Bupropion,headache
+Bupropion,nausea
+Bupropion,tremor
+Bupropion,seizure
+Bupropion,anxiety
+Bupropion,weight loss
+Bupropion,dizziness
+Celecoxib,dyspepsia
+Celecoxib,diarrhea
+Celecoxib,headache
+Celecoxib,peripheral edema
+Celecoxib,hypertension
+Celecoxib,abdominal pain
+Ciprofloxacin,nausea
+Ciprofloxacin,diarrhea
+Ciprofloxacin,headache
+Ciprofloxacin,dizziness
+Ciprofloxacin,tendon rupture
+Ciprofloxacin,rash
+Ciprofloxacin,photosensitivity
+Clopidogrel,bleeding
+Clopidogrel,bruising
+Clopidogrel,diarrhea
+Clopidogrel,rash
+Clopidogrel,dyspepsia
+Diazepam,somnolence
+Diazepam,fatigue
+Diazepam,ataxia
+Diazepam,dizziness
+Diazepam,dependence
+Diazepam,confusion
+Diphenhydramine,somnolence
+Diphenhydramine,dry mouth
+Diphenhydramine,dizziness
+Diphenhydramine,blurred vision
+Diphenhydramine,constipation
+Diphenhydramine,urinary retention
+Duloxetine,nausea
+Duloxetine,dry mouth
+Duloxetine,constipation
+Duloxetine,fatigue
+Duloxetine,dizziness
+Duloxetine,insomnia
+Duloxetine,decreased appetite
+Duloxetine,hyperhidrosis
+Duloxetine,somnolence
+Dutasteride,decreased libido
+Dutasteride,erectile dysfunction
+Dutasteride,ejaculation disorder
+Dutasteride,gynecomastia
+Dutasteride,breast tenderness
+Enalapril,dry cough
+Enalapril,dizziness
+Enalapril,headache
+Enalapril,hyperkalemia
+Enalapril,hypotension
+Enalapril,fatigue
+Famotidine,headache
+Famotidine,dizziness
+Famotidine,constipation
+Famotidine,diarrhea
+Finasteride,decreased libido
+Finasteride,erectile dysfunction
+Finasteride,ejaculation disorder
+Finasteride,gynecomastia
+Finasteride,breast tenderness
+Finasteride,rash
+Fluoxetine,nausea
+Fluoxetine,insomnia
+Fluoxetine,headache
+Fluoxetine,dry mouth
+Fluoxetine,sexual dysfunction
+Fluoxetine,anxiety
+Fluoxetine,somnolence
+Fluoxetine,decreased appetite
+Gabapentin,somnolence
+Gabapentin,dizziness
+Gabapentin,ataxia
+Gabapentin,fatigue
+Gabapentin,peripheral edema
+Gabapentin,weight gain
+Gabapentin,nystagmus
+Hydralazine,tachycardia
+Hydralazine,headache
+Hydralazine,flushing
+Hydralazine,peripheral edema
+Hydralazine,lupus-like syndrome
+Hydralazine,dizziness
+Hydralazine,palpitations
+Hydrocortisone,weight gain
+Hydrocortisone,hyperglycemia
+Hydrocortisone,peripheral edema
+Hydrocortisone,mood changes
+Hydrocortisone,insomnia
+Hydrocortisone,acne
+Hydroxyzine,somnolence
+Hydroxyzine,dry mouth
+Hydroxyzine,dizziness
+Hydroxyzine,headache
+Hydroxyzine,fatigue
+Ibuprofen,dyspepsia
+Ibuprofen,headache
+Ibuprofen,dizziness
+Ibuprofen,peripheral edema
+Ibuprofen,hypertension
+Ibuprofen,gastric ulcer
+Ibuprofen,nausea
+Lenalidomide,neutropenia
+Lenalidomide,thrombocytopenia
+Lenalidomide,thrombosis
+Lenalidomide,fatigue
+Lenalidomide,diarrhea
+Lenalidomide,rash
+Lenalidomide,peripheral neuropathy
+Lenalidomide,teratogenicity
+Lenalidomide,anemia
+Levothyroxine,tachycardia
+Levothyroxine,insomnia
+Levothyroxine,tremor
+Levothyroxine,weight loss
+Levothyroxine,hyperhidrosis
+Levothyroxine,anxiety
+Levothyroxine,headache
+Lisinopril,dry cough
+Lisinopril,dizziness
+Lisinopril,headache
+Lisinopril,hyperkalemia
+Lisinopril,hypotension
+Lisinopril,fatigue
+Lisinopril,angioedema
+Loratadine,headache
+Loratadine,dry mouth
+Loratadine,fatigue
+Loratadine,nasopharyngitis
+Losartan,dizziness
+Losartan,hyperkalemia
+Losartan,hypotension
+Losartan,fatigue
+Losartan,back pain
+Losartan,upper respiratory infection
+Metformin,diarrhea
+Metformin,nausea
+Metformin,abdominal pain
+Metformin,metallic taste
+Metformin,decreased appetite
+Metformin,vitamin B12 deficiency
+Metformin,lactic acidosis
+Methylphenidate,insomnia
+Methylphenidate,decreased appetite
+Methylphenidate,headache
+Methylphenidate,tachycardia
+Methylphenidate,anxiety
+Methylphenidate,weight loss
+Methylphenidate,dry mouth
+Metoprolol,fatigue
+Metoprolol,dizziness
+Metoprolol,bradycardia
+Metoprolol,hypotension
+Metoprolol,depression
+Metoprolol,cold extremities
+Metoprolol,dyspnea
+Minoxidil,hypertrichosis
+Minoxidil,peripheral edema
+Minoxidil,tachycardia
+Minoxidil,headache
+Minoxidil,dizziness
+Minoxidil,weight gain
+Minoxidil,pericardial effusion
+Minoxidil,flushing
+Modafinil,headache
+Modafinil,nausea
+Modafinil,insomnia
+Modafinil,dizziness
+Modafinil,dry mouth
+Modafinil,anxiety
+Morphine,constipation
+Morphine,nausea
+Morphine,somnolence
+Morphine,respiratory depression
+Morphine,pruritus
+Morphine,dizziness
+Morphine,dependence
+Naproxen,dyspepsia
+Naproxen,headache
+Naproxen,dizziness
+Naproxen,peripheral edema
+Naproxen,hypertension
+Naproxen,tinnitus
+Naproxen,nausea
+Olanzapine,weight gain
+Olanzapine,somnolence
+Olanzapine,dry mouth
+Olanzapine,dizziness
+Olanzapine,constipation
+Olanzapine,hyperglycemia
+Omeprazole,headache
+Omeprazole,diarrhea
+Omeprazole,abdominal pain
+Omeprazole,nausea
+Omeprazole,flatulence
+Omeprazole,vitamin B12 deficiency
+Oxycodone,constipation
+Oxycodone,nausea
+Oxycodone,somnolence
+Oxycodone,dizziness
+Oxycodone,pruritus
+Oxycodone,dependence
+Oxycodone,dry mouth
+Paroxetine,nausea
+Paroxetine,dry mouth
+Paroxetine,somnolence
+Paroxetine,sexual dysfunction
+Paroxetine,constipation
+Paroxetine,dizziness
+Paroxetine,hyperhidrosis
+Paroxetine,weight gain
+Pomalidomide,neutropenia
+Pomalidomide,thrombocytopenia
+Pomalidomide,fatigue
+Pomalidomide,thrombosis
+Pomalidomide,constipation
+Pomalidomide,dyspnea
+Pomalidomide,teratogenicity
+Pomalidomide,anemia
+Prednisone,weight gain
+Prednisone,insomnia
+Prednisone,mood changes
+Prednisone,hyperglycemia
+Prednisone,hypertension
+Prednisone,peripheral edema
+Prednisone,osteoporosis
+Prednisone,acne
+Pregabalin,somnolence
+Pregabalin,dizziness
+Pregabalin,peripheral edema
+Pregabalin,weight gain
+Pregabalin,dry mouth
+Pregabalin,blurred vision
+Pregabalin,ataxia
+Propranolol,fatigue
+Propranolol,bradycardia
+Propranolol,dizziness
+Propranolol,cold extremities
+Propranolol,depression
+Propranolol,hypotension
+Propranolol,sleep disturbance
+Quetiapine,somnolence
+Quetiapine,dizziness
+Quetiapine,dry mouth
+Quetiapine,weight gain
+Quetiapine,constipation
+Quetiapine,hypotension
+Raloxifene,hot flashes
+Raloxifene,leg cramps
+Raloxifene,thrombosis
+Raloxifene,peripheral edema
+Raloxifene,arthralgia
+Risperidone,somnolence
+Risperidone,weight gain
+Risperidone,hyperprolactinemia
+Risperidone,dizziness
+Risperidone,akathisia
+Risperidone,tremor
+Rosuvastatin,myalgia
+Rosuvastatin,headache
+Rosuvastatin,nausea
+Rosuvastatin,abdominal pain
+Rosuvastatin,elevated liver enzymes
+Rosuvastatin,dizziness
+Sertraline,nausea
+Sertraline,diarrhea
+Sertraline,insomnia
+Sertraline,dry mouth
+Sertraline,dizziness
+Sertraline,sexual dysfunction
+Sertraline,somnolence
+Sertraline,hyperhidrosis
+Sildenafil,headache
+Sildenafil,flushing
+Sildenafil,dyspepsia
+Sildenafil,nasal congestion
+Sildenafil,visual disturbance
+Sildenafil,dizziness
+Sildenafil,back pain
+Sildenafil,myalgia
+Sildenafil,priapism
+Sildenafil,hypotension
+Simvastatin,myalgia
+Simvastatin,headache
+Simvastatin,constipation
+Simvastatin,abdominal pain
+Simvastatin,elevated liver enzymes
+Simvastatin,rhabdomyolysis
+Sitagliptin,nasopharyngitis
+Sitagliptin,headache
+Sitagliptin,upper respiratory infection
+Sitagliptin,diarrhea
+Tadalafil,headache
+Tadalafil,back pain
+Tadalafil,myalgia
+Tadalafil,flushing
+Tadalafil,nasal congestion
+Tadalafil,dyspepsia
+Tadalafil,limb pain
+Tadalafil,dizziness
+Tadalafil,visual disturbance
+Tamoxifen,hot flashes
+Tamoxifen,vaginal discharge
+Tamoxifen,thrombosis
+Tamoxifen,endometrial hyperplasia
+Tamoxifen,nausea
+Tamoxifen,fluid retention
+Tamoxifen,irregular menses
+Thalidomide,peripheral neuropathy
+Thalidomide,somnolence
+Thalidomide,constipation
+Thalidomide,rash
+Thalidomide,teratogenicity
+Thalidomide,dizziness
+Thalidomide,neutropenia
+Thalidomide,thrombosis
+Thalidomide,fatigue
+Topiramate,paresthesia
+Topiramate,dizziness
+Topiramate,fatigue
+Topiramate,decreased appetite
+Topiramate,weight loss
+Topiramate,cognitive impairment
+Topiramate,taste disturbance
+Tramadol,nausea
+Tramadol,dizziness
+Tramadol,constipation
+Tramadol,headache
+Tramadol,somnolence
+Tramadol,dry mouth
+Tramadol,seizure
+Valproate,nausea
+Valproate,tremor
+Valproate,weight gain
+Valproate,hair loss
+Valproate,somnolence
+Valproate,thrombocytopenia
+Valproate,elevated liver enzymes
+Vardenafil,headache
+Vardenafil,flushing
+Vardenafil,nasal congestion
+Vardenafil,dyspepsia
+Vardenafil,dizziness
+Vardenafil,visual disturbance
+Vardenafil,back pain
+Varenicline,nausea
+Varenicline,insomnia
+Varenicline,abnormal dreams
+Varenicline,headache
+Varenicline,constipation
+Varenicline,flatulence
+Varenicline,vomiting
+Venlafaxine,nausea
+Venlafaxine,dry mouth
+Venlafaxine,dizziness
+Venlafaxine,insomnia
+Venlafaxine,somnolence
+Venlafaxine,hyperhidrosis
+Venlafaxine,constipation
+Venlafaxine,hypertension
+Venlafaxine,sexual dysfunction
+Warfarin,bleeding
+Warfarin,bruising
+Warfarin,hair loss
+Warfarin,skin necrosis
+Warfarin,nausea
