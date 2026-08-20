@@ -372,6 +372,20 @@ def about_tab(matrix: pd.DataFrame) -> None:
         surface drug repurposing candidates that pure indication-based
         search would never suggest.
 
+        **Why this matters.** Repurposing an already-approved drug skips
+        most of the cost of drug development -- its safety profile, dosing,
+        and manufacturing are already established, so a new indication can
+        go almost straight to efficacy trials. Traditional repurposing
+        search starts from a known mechanism or indication, which means it
+        can only find what's already understood. Side-effect similarity
+        needs no prior knowledge of mechanism: it surfaces Tadalafil and
+        Vardenafil as Sildenafil's relatives purely from overlapping side
+        effects, without ever being told "these are all PDE5 inhibitors."
+        The tradeoff is that it's a hypothesis generator, not a validator --
+        a high score means "worth investigating," not "will work," which is
+        why the Validated Case Studies tab exists: to confirm the method
+        recovers *known* good leads before trusting it on unknown ones.
+
         **Fingerprints.** Each drug is represented as a binary vector over a
         vocabulary of side-effect terms: 1 if the drug is documented to
         cause that effect, 0 otherwise. This mirrors how the
