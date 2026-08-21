@@ -32,7 +32,7 @@ CASE_STUDIES = [
         "story": (
             "Pfizer developed sildenafil in the 1990s as a PDE5-inhibiting "
             "vasodilator to treat angina. Trial participants reported an "
-            "unexpected side effect -- improved erections -- which became "
+            "unexpected side effect, improved erections, which became "
             "the drug's blockbuster indication (Viagra). The same PDE5 "
             "mechanism was later validated for pulmonary arterial "
             "hypertension (Revatio). Tadalafil and vardenafil, the other "
@@ -50,8 +50,8 @@ CASE_STUDIES = [
         "story": (
             "Minoxidil was developed as a potent oral vasodilator for "
             "severe hypertension. Patients on it grew hair in unexpected "
-            "places -- hypertrichosis, a side effect of its vasodilating "
-            "mechanism -- which was then developed into a topical product "
+            "places. Hypertrichosis, a side effect of its vasodilating "
+            "mechanism, was then developed into a topical product "
             "for pattern baldness (Rogaine). Hydralazine, another direct "
             "vasodilator antihypertensive, shares much of minoxidil's "
             "cardiovascular side-effect profile (tachycardia, flushing, "
@@ -70,7 +70,7 @@ CASE_STUDIES = [
             "anti-angiogenic mechanism was later found effective for "
             "leprosy complications and, decisively, multiple myeloma. "
             "Lenalidomide and pomalidomide are next-generation analogs "
-            "(IMiDs) purpose-built to retain that mechanism -- and they "
+            "(IMiDs) purpose-built to retain that mechanism and they "
             "carry over the family side-effect signature (cytopenias, "
             "thrombosis risk, teratogenicity) that our fingerprint "
             "approach picks up directly from the data."
