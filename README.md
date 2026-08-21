@@ -57,6 +57,12 @@ score means "worth investigating," not "will work." That's the reason the
    scaffold. The PDE5 inhibitors happen to look alike (they're a real
    chemical class); minoxidil and hydralazine don't, despite sharing a
    cardiovascular side-effect signature from the same mechanism.
+6. **Flag off-target hypotheses.** Every match is checked against a curated
+   table of known drug targets. A match that already shares a known target
+   confirms the method is working; a high-similarity match with *no* known
+   shared target is flagged as an off-target hypothesis — the more
+   interesting case, since it points at a possible mechanism nobody's
+   documented yet. See **Off-target hypotheses** below.
 
 ## Project structure
 
@@ -66,10 +72,12 @@ OffTarget/
 ├── data_prep.py           # Parses raw data into a clean drug x side-effect matrix
 ├── similarity.py           # Jaccard/cosine similarity, top-N lookup
 ├── structures_prep.py     # Builds validated 3D conformers from SMILES
+├── targets.py             # Known-target lookup + off-target hypothesis scan
 ├── data/
 │   ├── raw/
 │   │   ├── demo_side_effects.csv   # curated demo dataset (default source)
-│   │   └── drug_smiles.csv          # curated SMILES for 3D structures
+│   │   ├── drug_smiles.csv          # curated SMILES for 3D structures
+│   │   └── drug_targets.csv         # curated known primary target per drug
 │   ├── processed/
 │   │   ├── drug_side_effect_matrix.parquet
 │   │   └── drug_side_effect_matrix.csv
@@ -144,6 +152,40 @@ correctness for more complex molecules. One drug in the dataset
 couldn't be confidently validated. Treat the 3D views as illustrative, not
 as a certified structure database.
 
+## Off-target hypotheses
+
+This is the part of the methodology that gives the app its name. It follows
+[Campillos et al., "Drug target identification using side-effect
+similarity"](https://doi.org/10.1126/science.1158140) (*Science*, 2008) —
+the paper this whole approach is built on. Its key move: side-effect
+similarity isn't just useful for finding a drug's new *indication*, it can
+predict a drug's molecular **target**, including targets nobody has linked
+that drug to yet. The authors validated several such predictions
+experimentally (in vitro binding assays).
+
+OffTarget applies that logic directly:
+
+- `data/raw/drug_targets.csv` curates each drug's known primary molecular
+  target and a broader "target family" string used for comparison (e.g.
+  every statin gets `HMG-CoA reductase`; every PDE5 inhibitor gets
+  `Phosphodiesterase type 5 (PDE5)`).
+- `targets.py` classifies every drug pair as **shared** (same target
+  family — the method found something already known), **off-target** (high
+  side-effect similarity, no known shared target — a genuine hypothesis),
+  or **unknown** (target not curated).
+- The **Search** tab badges each result accordingly; the **Off-Target
+  Hypotheses** tab scans the entire dataset for the strongest off-target
+  pairs at an adjustable similarity threshold.
+
+**Caveat:** target curation is a simplification. Some drugs are
+polypharmacological (e.g. tramadol, valproate) and are bucketed under a
+single dominant/representative target family; two drugs with genuinely
+related but non-identical targets (e.g. a beta-1-selective vs.
+non-selective beta blocker) may be flagged "off-target" even though they're
+mechanistically close. These are computational leads, not findings — real
+off-target hypotheses need experimental validation before they mean
+anything clinically, same as in the original paper.
+
 ## Validated case studies
 
 Three documented repurposing stories are used to sanity-check the method
@@ -173,6 +215,9 @@ the result.
   clinical or pharmacological conclusions.
 - 3D structures are illustrative (see the caveat above) and one drug
   (oxycodone) has no 3D structure available.
+- Known-target curation is a simplification (see the caveat above); an
+  "off-target hypothesis" badge means *no known shared target in this
+  dataset*, not an experimentally confirmed novel mechanism.
 
 ## Running locally
 
