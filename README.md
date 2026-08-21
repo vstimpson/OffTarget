@@ -8,15 +8,14 @@ profiles, in the spirit of the [SIDER database](http://sideeffects.embl.de/)
 *pattern* of side effects often act on the same underlying biology, even
 when they're prescribed for completely unrelated diseases. That overlap can
 surface repurposing candidates that indication-based search would never
-suggest — this is, in fact, how several real drugs were discovered.
+suggest. This is how several real drugs were discovered.
 
-[Live app](https://github.com/vstimpson/OffTarget) · Built as a data science
-portfolio project.
+[Live app](https://github.com/vstimpson/OffTarget)
 
 ## Why this matters
 
 Drug development is slow and expensive, but *repurposing* an
-already-approved drug skips most of that cost — its safety profile,
+already-approved drug skips most of that cost. Its safety profile,
 dosing, and manufacturing are already established, so a new indication can
 go almost straight to efficacy trials instead of starting over. The catch
 is finding good repurposing candidates in the first place: traditional
@@ -26,17 +25,17 @@ only find what's already understood.
 Side-effect similarity offers a cheap, data-driven alternative that needs
 no prior knowledge of mechanism. It found Tadalafil and Vardenafil as
 Sildenafil's relatives purely from overlapping side effects, without ever
-being told "these are all PDE5 inhibitors" — the kind of non-obvious lead
-that indication- or target-based search would miss entirely. The tradeoff
+being told "these are all PDE5 inhibitors", the kind of non-obvious lead
+that indication or target-based search would miss entirely. The tradeoff
 is that it's a hypothesis generator, not a validator: a high similarity
 score means "worth investigating," not "will work." That's the reason the
-**Validated Case Studies** tab exists — to confirm the method recovers
+**Validated Case Studies** tab exists, to confirm the method recovers
 *known* good leads before trusting it on unknown ones.
 
 ## How it works
 
 1. **Fingerprint each drug.** Every drug is represented as a binary vector
-   over a shared vocabulary of side-effect terms — `1` if the drug is
+   over a shared vocabulary of side-effect terms. `1` if the drug is
    documented to cause that effect, `0` otherwise.
 2. **Compare fingerprints.** Similarity between two drugs is computed with:
    - **Jaccard index** — `|A ∩ B| / |A ∪ B|`, the fraction of the *combined*
