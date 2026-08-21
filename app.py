@@ -16,6 +16,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from similarity import load_matrix, similarity_matrix, top_n_similar
+from targets import load_targets, target_relationship, top_off_target_hypotheses
 
 CLINICAL_SCALE = ["#F8FAFC", "#CCFBF1", "#5EEAD4", "#0D9488", "#134E4A"]
 STRUCTURES_DIR = Path("data/structures")
@@ -121,6 +122,17 @@ def inject_css() -> None:
             font-size: 0.8rem;
         }
         .sm-caption { color: #64748B; font-size: 0.85rem; }
+        .sm-badge {
+            display: inline-block;
+            border-radius: 6px;
+            padding: 0.1rem 0.55rem;
+            margin-top: 0.4rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+        .sm-badge-shared { background: #DCFCE7; color: #166534; }
+        .sm-badge-off-target { background: #FEF3C7; color: #92400E; }
+        .sm-badge-unknown { background: #F1F5F9; color: #64748B; font-weight: 400; }
         </style>
         """,
         unsafe_allow_html=True,
@@ -137,19 +149,37 @@ def get_similarity(_matrix: pd.DataFrame, metric: str) -> pd.DataFrame:
     return similarity_matrix(_matrix, metric=metric)
 
 
-def render_results_cards(results: pd.DataFrame) -> None:
+@st.cache_data
+def get_targets() -> pd.DataFrame:
+    return load_targets()
+
+
+def target_badge_html(query: str, other: str, targets: pd.DataFrame) -> str:
+    relationship = target_relationship(query, other, targets)
+    if relationship == "shared":
+        family = targets.loc[other, "target_family"]
+        return f'<span class="sm-badge sm-badge-shared">Same target: {family}</span>'
+    if relationship == "off_target":
+        target = targets.loc[other, "primary_target"]
+        return f'<span class="sm-badge sm-badge-off-target">Off-target hypothesis: {target}</span>'
+    return '<span class="sm-badge sm-badge-unknown">Target unknown</span>'
+
+
+def render_results_cards(results: pd.DataFrame, query: str, targets: pd.DataFrame) -> None:
     for _, row in results.iterrows():
         tags = "".join(
             f'<span class="sm-tag">{se}</span>'
             for se in row["shared_side_effects"].split(", ")
             if se
         )
+        badge = target_badge_html(query, row["drug_name"], targets)
         st.markdown(
             f"""
             <div class="sm-card">
                 <h4>{row['drug_name']} <span class="sm-score">{row['similarity']:.1%} match</span></h4>
                 <div class="sm-caption">{row['n_shared']} shared side effects</div>
                 <div style="margin-top:0.4rem;">{tags}</div>
+                <div>{badge}</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -297,10 +327,16 @@ def search_tab(matrix: pd.DataFrame) -> None:
         st.warning("No other drugs share any side effects with this one in the demo dataset.")
         return
 
+    targets = get_targets()
     left, right = st.columns([1, 1])
     with left:
         st.markdown(f"#### Top {len(results)} matches for {drug}")
-        render_results_cards(results)
+        st.caption(
+            "Green = already known to share a target with {}. Amber = an "
+            "off-target hypothesis -- high side-effect similarity with no "
+            "known shared target, worth investigating.".format(drug)
+        )
+        render_results_cards(results, drug, targets)
     with right:
         render_score_chart(results, drug)
         render_fingerprint_heatmap(matrix, drug, results)
@@ -343,12 +379,29 @@ def case_studies_tab(matrix: pd.DataFrame) -> None:
             hits = [r for r in case["known_relatives"] if r in ranked]
 
             if hits:
+                targets = get_targets()
                 for relative in hits:
                     rank = ranked.index(relative) + 1
                     score = results.loc[results["drug_name"] == relative, "similarity"].iloc[0]
+                    relationship = target_relationship(case["drug"], relative, targets)
+                    if relationship == "shared":
+                        target_note = (
+                            f" They share a known target "
+                            f"({targets.loc[relative, 'target_family']}), confirming the method "
+                            f"picked up real biology here."
+                        )
+                    elif relationship == "off_target":
+                        target_note = (
+                            f" Interestingly, they have **no known shared target** "
+                            f"({targets.loc[case['drug'], 'target_family']} vs. "
+                            f"{targets.loc[relative, 'target_family']}) -- exactly the kind of "
+                            f"off-target hypothesis this method is meant to surface."
+                        )
+                    else:
+                        target_note = ""
                     st.success(
                         f"Recovered: **{relative}** ranked #{rank} "
-                        f"with {score:.1%} Jaccard similarity."
+                        f"with {score:.1%} Jaccard similarity.{target_note}"
                     )
                 render_structure_row([case["drug"]] + hits)
             else:
@@ -360,6 +413,52 @@ def case_studies_tab(matrix: pd.DataFrame) -> None:
 
             with st.expander(f"Full top-10 similarity ranking for {case['drug']}"):
                 st.dataframe(results, use_container_width=True, hide_index=True)
+
+
+def off_target_tab(matrix: pd.DataFrame) -> None:
+    st.subheader("Off-target hypotheses")
+    st.write(
+        "Campillos et al. (*Science*, 2008) proposed side-effect similarity "
+        "not just to find repurposing candidates, but to predict shared "
+        "molecular **targets** -- including ones nobody had linked a drug "
+        "to before. A high-similarity pair that already shares a known "
+        "target confirms the method is picking up real biology. A "
+        "high-similarity pair with **no known shared target** is a genuine "
+        "hypothesis: these two drugs might affect the same underlying "
+        "pathway through a mechanism that hasn't been characterized yet."
+    )
+
+    min_sim = st.slider(
+        "Minimum side-effect similarity (Jaccard)", min_value=0.1, max_value=0.9,
+        value=0.25, step=0.05,
+    )
+    sims = get_similarity(matrix, "jaccard")
+    targets = get_targets()
+    hypotheses = top_off_target_hypotheses(sims, targets, min_similarity=min_sim, n=15)
+
+    if hypotheses.empty:
+        st.info("No off-target hypotheses at this similarity threshold -- try lowering it.")
+        return
+
+    st.markdown(f"#### Top {len(hypotheses)} off-target hypotheses in this dataset")
+    for _, row in hypotheses.iterrows():
+        with st.container(border=True):
+            st.markdown(
+                f"**{row['drug_a']}** ↔ **{row['drug_b']}** "
+                f"<span class='sm-score'>{row['similarity']:.1%} similarity</span>",
+                unsafe_allow_html=True,
+            )
+            st.caption(f"{row['drug_a']}: {row['target_a']}  \n{row['drug_b']}: {row['target_b']}")
+
+    with st.expander("View as data table"):
+        st.dataframe(hypotheses, use_container_width=True, hide_index=True)
+
+    st.caption(
+        "These are computational leads, not findings -- they'd need "
+        "experimental validation (e.g. binding assays) before meaning "
+        "anything clinically, exactly as in the original Campillos et al. "
+        "study."
+    )
 
 
 def about_tab(matrix: pd.DataFrame) -> None:
@@ -409,6 +508,16 @@ def about_tab(matrix: pd.DataFrame) -> None:
         and `drug_names.tsv` from SIDER and place them in `data/raw/` --
         no code changes required.
 
+        **Off-target hypotheses.** Alongside each search result and in its
+        own tab, OffTarget shows whether a similar drug shares a curated,
+        known molecular target with the query drug (confirming the method)
+        or has no known shared target despite high side-effect similarity
+        (an off-target hypothesis worth investigating). This framing
+        follows Campillos et al., "Drug target identification using
+        side-effect similarity" (*Science*, 2008) -- the paper this whole
+        approach is built on, which used exactly this logic to predict and
+        experimentally validate several previously-unknown drug targets.
+
         **3D structures.** Each drug's structure is generated offline from a
         curated SMILES string with RDKit, validated against its expected
         molecular formula, and rendered with a locally vendored copy of
@@ -456,12 +565,16 @@ def main() -> None:
             "[Source](https://github.com/vstimpson/OffTarget)"
         )
 
-    tab1, tab2, tab3 = st.tabs(["Search", "Validated Case Studies", "Methodology"])
+    tab1, tab2, tab3, tab4 = st.tabs(
+        ["Search", "Validated Case Studies", "Off-Target Hypotheses", "Methodology"]
+    )
     with tab1:
         search_tab(matrix)
     with tab2:
         case_studies_tab(matrix)
     with tab3:
+        off_target_tab(matrix)
+    with tab4:
         about_tab(matrix)
 
 
