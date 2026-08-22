@@ -777,11 +777,6 @@ def surprising_pairs_tab(matrix: pd.DataFrame) -> None:
 def cluster_map_tab(matrix: pd.DataFrame) -> None:
     st.subheader("Cluster map")
     st.write(
-        "Turn the 96-dimensional side-effect fingerprint space into "
-        "something you can actually look at. If drugs with similar "
-        "mechanisms cluster together using nothing but side-effect data "
-        "(no indication, no target, no drug class) that's a strong visual "
-        "argument that the fingerprints are picking up real biology."
     )
 
     method = st.radio("Projection", options=["PCA", "t-SNE"], horizontal=True)
@@ -828,7 +823,7 @@ def cluster_map_tab(matrix: pd.DataFrame) -> None:
     st.caption(
         "Each point is one drug, positioned from its full 96-dimensional "
         "side-effect fingerprint. Neither axis corresponds to a specific "
-        "side effect or has physical units -- PCA axes are directions of "
+        "side effect or has physical units. PCA axes are directions of "
         "greatest variance across all fingerprints combined; t-SNE axes "
         "preserve which drugs are near neighbors, not true distances. What "
         "matters is relative position: same-colored points landing close "
