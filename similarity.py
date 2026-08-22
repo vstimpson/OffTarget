@@ -4,6 +4,12 @@ Drugs are represented as binary side-effect fingerprints (one row per drug in
 the matrix built by data_prep.py). Similarity between two fingerprints is
 computed with Jaccard index (intersection over union of side effects) or
 cosine similarity, both vectorized across the whole matrix at once.
+
+Both metrics can optionally be IDF-weighted: side effects that appear in
+almost every drug (headache, nausea, dizziness) carry little information
+for distinguishing drugs and are down-weighted, while rare side effects
+count for more -- the same idea as TF-IDF in text retrieval, applied to a
+binary presence matrix instead of word counts.
 """
 from __future__ import annotations
 
@@ -46,12 +52,59 @@ def cosine_similarity_matrix(matrix: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(sim, index=matrix.index, columns=matrix.index)
 
 
-def similarity_matrix(matrix: pd.DataFrame, metric: str = "jaccard") -> pd.DataFrame:
+def idf_weights(matrix: pd.DataFrame) -> pd.Series:
+    """IDF-style informativeness weight per side effect: w_i = log(N / n_i).
+
+    N is the number of drugs; n_i is the number of drugs documented to
+    cause side effect i. Side effects shared by nearly every drug (headache,
+    nausea, dizziness) score close to 0 -- they don't help distinguish
+    drugs. Rare side effects score higher and count for more.
+    """
+    n_drugs = len(matrix)
+    n_i = matrix.sum(axis=0).clip(lower=1)
+    return np.log(n_drugs / n_i)
+
+
+def apply_weights(matrix: pd.DataFrame, weights: pd.Series) -> pd.DataFrame:
+    """Scale each side-effect column by its weight."""
+    return matrix * weights.reindex(matrix.columns).to_numpy()
+
+
+def weighted_jaccard_similarity_matrix(matrix: pd.DataFrame, weights: pd.Series) -> pd.DataFrame:
+    """IDF-weighted (Ruzicka) Jaccard similarity.
+
+    For binary vectors, sum(min(w*a, w*b)) / sum(max(w*a, w*b)) reduces to
+    the sum of weights in the shared side effects over the sum of weights
+    in the combined side effects -- the natural weighted generalization of
+    "intersection over union."
+    """
+    values = matrix.values.astype(np.float64)
+    w = weights.reindex(matrix.columns).to_numpy(dtype=np.float64)
+    weighted_values = values * w
+    intersection = weighted_values @ values.T
+    row_w_sums = weighted_values.sum(axis=1)
+    union = row_w_sums[:, None] + row_w_sums[None, :] - intersection
+    with np.errstate(divide="ignore", invalid="ignore"):
+        sim = np.where(union > 0, intersection / union, 0.0)
+    return pd.DataFrame(sim, index=matrix.index, columns=matrix.index)
+
+
+def similarity_matrix(
+    matrix: pd.DataFrame,
+    metric: str = "jaccard",
+    weighted: bool = False,
+) -> pd.DataFrame:
     if metric not in VALID_METRICS:
         raise ValueError(f"metric must be one of {VALID_METRICS}, got {metric!r}")
+    if not weighted:
+        if metric == "jaccard":
+            return jaccard_similarity_matrix(matrix)
+        return cosine_similarity_matrix(matrix)
+
+    weights = idf_weights(matrix)
     if metric == "jaccard":
-        return jaccard_similarity_matrix(matrix)
-    return cosine_similarity_matrix(matrix)
+        return weighted_jaccard_similarity_matrix(matrix, weights)
+    return cosine_similarity_matrix(apply_weights(matrix, weights))
 
 
 def resolve_drug_name(query: str, available: list[str]) -> str | None:
@@ -73,6 +126,7 @@ def top_n_similar(
     matrix: pd.DataFrame,
     n: int = 10,
     metric: str = "jaccard",
+    weighted: bool = False,
 ) -> pd.DataFrame:
     """Return the top-N drugs most similar to `drug_name` by side-effect profile.
 
@@ -85,7 +139,7 @@ def top_n_similar(
         hint = f" Did you mean: {', '.join(suggestions)}?" if suggestions else ""
         raise ValueError(f"Unknown drug '{drug_name}'.{hint}")
 
-    sims = similarity_matrix(matrix, metric=metric)
+    sims = similarity_matrix(matrix, metric=metric, weighted=weighted)
     scores = sims.loc[resolved].drop(resolved).sort_values(ascending=False)
 
     query_effects = set(matrix.columns[matrix.loc[resolved] == 1])
