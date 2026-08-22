@@ -175,7 +175,8 @@ OffTarget applies that logic directly:
   or **unknown** (target not curated).
 - The **Search** tab badges each result accordingly; the **Off-Target
   Hypotheses** tab scans the entire dataset for the strongest off-target
-  pairs at an adjustable similarity threshold.
+  pairs at an adjustable similarity threshold, with each pair's 3D
+  structures and computed properties one click away.
 
 **Caveat:** target curation is a simplification. Some drugs are
 polypharmacological (e.g. tramadol, valproate) and are bucketed under a

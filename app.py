@@ -449,6 +449,8 @@ def off_target_tab(matrix: pd.DataFrame) -> None:
                 unsafe_allow_html=True,
             )
             st.caption(f"{row['drug_a']}: {row['target_a']}  \n{row['drug_b']}: {row['target_b']}")
+            with st.expander("3D structures and properties"):
+                render_structure_row([row["drug_a"], row["drug_b"]])
 
     with st.expander("View as data table"):
         st.dataframe(hypotheses, use_container_width=True, hide_index=True)
