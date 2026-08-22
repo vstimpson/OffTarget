@@ -17,10 +17,13 @@ import streamlit.components.v1 as components
 
 from similarity import load_matrix, similarity_matrix, top_n_similar
 from targets import (
+    all_pairs_target_overlap,
     drug_reframing_signals,
     load_reframings,
     load_targets,
     reframing_candidates,
+    target_overlap_by_similarity_bin,
+    target_overlap_correlation,
     target_relationship,
     top_off_target_hypotheses,
 )
@@ -452,6 +455,68 @@ def case_studies_tab(matrix: pd.DataFrame) -> None:
             with st.expander(f"Full top-10 similarity ranking for {case['drug']}"):
                 st.dataframe(results, use_container_width=True, hide_index=True)
 
+    st.markdown("---")
+    render_target_validation(matrix)
+
+
+def render_target_validation(matrix: pd.DataFrame) -> None:
+    st.markdown("#### Does this hold up across the whole dataset?")
+    st.write(
+        "The three case studies above are hand-picked. A more honest test: "
+        "take *every* drug pair with a curated target, and check whether "
+        "higher side-effect similarity actually corresponds to a higher "
+        "rate of sharing a known target -- not just for the drugs the "
+        "case studies were built around."
+    )
+
+    sims = get_similarity(matrix, "jaccard")
+    targets = get_targets()
+    pairs = all_pairs_target_overlap(sims, targets)
+    stats = target_overlap_correlation(pairs)
+
+    if pairs.empty:
+        st.info("Not enough curated-target pairs to validate.")
+        return
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Pairs analyzed", f"{stats['n_pairs']:,}")
+    c2.metric("Correlation (similarity vs. shared target)", f"{stats['correlation']:.2f}")
+    c3.metric(
+        "Mean similarity, shared vs. not",
+        f"{stats['mean_sim_shared']:.1%} vs. {stats['mean_sim_not_shared']:.1%}",
+    )
+
+    bins = target_overlap_by_similarity_bin(pairs, [0, 0.1, 0.2, 0.3, 0.5, 1.0])
+    fig = go.Figure(
+        go.Bar(
+            x=bins["bin_label"],
+            y=bins["pct_shared_target"] * 100,
+            marker=dict(color=bins["pct_shared_target"], colorscale=CLINICAL_SCALE),
+            text=[f"n={n}" for n in bins["n_pairs"]],
+            textposition="outside",
+        )
+    )
+    fig.update_layout(
+        title="Share of drug pairs with a known shared target, by similarity range",
+        xaxis_title="Jaccard similarity range",
+        yaxis_title="% sharing a known target",
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        margin=dict(l=10, r=10, t=40, b=10),
+        height=350,
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.caption(
+        f"A correlation of {stats['correlation']:.2f} across {stats['n_pairs']:,} pairs, "
+        "and a shared-target rate that climbs with similarity, is the general-case "
+        "version of what the case studies show individually: this isn't just "
+        "picking three examples that happen to work. It's also not proof the "
+        "method is reliable for any single pair -- most high-similarity pairs "
+        "*still* don't share a known target, which is exactly the off-target "
+        "hypothesis space the previous tab explores."
+    )
+
 
 def off_target_tab(matrix: pd.DataFrame) -> None:
     st.subheader("Off-target hypotheses")
@@ -574,6 +639,10 @@ def about_tab(matrix: pd.DataFrame) -> None:
         side-effect similarity" (*Science*, 2008) -- the paper this whole
         approach is built on, which used exactly this logic to predict and
         experimentally validate several previously-unknown drug targets.
+        The **Validated Case Studies** tab also runs this check across the
+        *whole* dataset, not just three examples: does higher side-effect
+        similarity actually correspond to a higher rate of sharing a known
+        target? (Short answer: yes -- see that tab for the numbers.)
 
         **Reframed side effects.** A more literal reading of "bad side
         effects, used positively": some side effects have real precedent

@@ -122,3 +122,72 @@ def top_off_target_hypotheses(
         return pd.DataFrame(columns=columns)
     result = pd.DataFrame(rows, columns=columns)
     return result.sort_values("similarity", ascending=False).head(n).reset_index(drop=True)
+
+
+def all_pairs_target_overlap(sims: pd.DataFrame, targets: pd.DataFrame) -> pd.DataFrame:
+    """Every drug pair with a curated target on both sides: similarity score
+    and whether they share a target family. The general-purpose validation
+    dataset -- does side-effect similarity correspond to target overlap,
+    across the whole matrix, not just hand-picked examples?
+    """
+    seen: set[frozenset[str]] = set()
+    rows = []
+    for drug_a in sims.index:
+        if drug_a not in targets.index:
+            continue
+        for drug_b, score in sims.loc[drug_a].items():
+            if drug_a == drug_b or drug_b not in targets.index:
+                continue
+            pair = frozenset((drug_a, drug_b))
+            if pair in seen:
+                continue
+            seen.add(pair)
+            rows.append(
+                {
+                    "drug_a": drug_a,
+                    "drug_b": drug_b,
+                    "similarity": float(score),
+                    "shares_target": targets.loc[drug_a, "target_family"]
+                    == targets.loc[drug_b, "target_family"],
+                    "target_a": targets.loc[drug_a, "primary_target"],
+                    "target_b": targets.loc[drug_b, "primary_target"],
+                }
+            )
+    columns = ["drug_a", "drug_b", "similarity", "shares_target", "target_a", "target_b"]
+    if not rows:
+        return pd.DataFrame(columns=columns)
+    return pd.DataFrame(rows, columns=columns)
+
+
+def target_overlap_correlation(pairs: pd.DataFrame) -> dict:
+    """Summary stats for the similarity-vs-shared-target relationship."""
+    if pairs.empty:
+        return {
+            "n_pairs": 0,
+            "n_shared": 0,
+            "correlation": float("nan"),
+            "mean_sim_shared": float("nan"),
+            "mean_sim_not_shared": float("nan"),
+        }
+    shared = pairs["shares_target"]
+    return {
+        "n_pairs": len(pairs),
+        "n_shared": int(shared.sum()),
+        "correlation": float(pairs["similarity"].corr(shared.astype(int))),
+        "mean_sim_shared": float(pairs.loc[shared, "similarity"].mean()) if shared.any() else float("nan"),
+        "mean_sim_not_shared": float(pairs.loc[~shared, "similarity"].mean()) if (~shared).any() else float("nan"),
+    }
+
+
+def target_overlap_by_similarity_bin(pairs: pd.DataFrame, bin_edges: list[float]) -> pd.DataFrame:
+    """Bin pairs by similarity and compute the share-a-target rate per bin --
+    the chart that answers "does higher similarity mean more shared targets?"
+    """
+    if pairs.empty:
+        return pd.DataFrame(columns=["bin_label", "pct_shared_target", "n_pairs"])
+    bins = pd.cut(pairs["similarity"], bins=bin_edges, include_lowest=True)
+    summary = pairs.groupby(bins, observed=True)["shares_target"].agg(["mean", "count"])
+    summary = summary.reset_index()
+    summary.columns = ["bin", "pct_shared_target", "n_pairs"]
+    summary["bin_label"] = summary["bin"].apply(lambda b: f"{max(b.left, 0):.1f}-{b.right:.1f}")
+    return summary[["bin_label", "pct_shared_target", "n_pairs"]]
