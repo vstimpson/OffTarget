@@ -82,11 +82,13 @@ OffTarget/
 ├── similarity.py           # Jaccard/cosine similarity, top-N lookup
 ├── structures_prep.py     # Builds validated 3D conformers from SMILES
 ├── targets.py             # Known-target lookup + off-target/reframing hypothesis scans
+├── analysis.py            # Surprising pairs, repurposing score, PCA/t-SNE, clustering
 ├── data/
 │   ├── raw/
 │   │   ├── demo_side_effects.csv         # curated demo dataset (default source)
 │   │   ├── drug_smiles.csv                # curated SMILES for 3D structures
 │   │   ├── drug_targets.csv               # curated known primary target per drug
+│   │   ├── drug_categories.csv            # curated therapeutic category per drug
 │   │   └── side_effect_reframings.csv     # side effects with precedent as a drug's actual purpose
 │   ├── processed/
 │   │   ├── drug_side_effect_matrix.parquet
@@ -212,6 +214,67 @@ flagged as an untapped candidate for the same reframed purpose. The
 **Off-Target Hypotheses** tab lists every candidate across the whole
 dataset.
 
+## Surprising pairs
+
+The most literal version of the investigation this app is built around:
+which drug pairs are highly similar by side effects despite treating
+completely different conditions? `data/raw/drug_categories.csv` curates a
+therapeutic category per drug; `analysis.surprising_pairs()` scans the
+whole similarity matrix for pairs above a threshold whose categories
+differ, ranked by similarity (or by the repurposing score below). For
+each one, `similarity.explain_similarity()` breaks the score down into its
+actual shared side effects, ranked by IDF weight -- not just "0.82
+similar," but "led by neuropathy (24%), dry mouth (18%), dizziness (11%)."
+That per-pair explanation is also wired into the Search tab's result cards.
+
+The strongest hit in the current dataset: **Amoxicillin ↔ Azithromycin**,
+85.8% cosine similarity, no known shared target (different antibiotic
+classes -- penicillin-binding proteins vs. the bacterial ribosome) --
+similar not because they hit the same target, but because both are
+antibiotics whose dominant side-effect signature is GI upset.
+
+### The repurposing score
+
+An explicitly **exploratory** ranking, described as such rather than
+presented as a validated metric:
+
+```
+Repurposing Score = Side-effect similarity × Biological plausibility × Indication difference
+```
+
+- **Biological plausibility** is a stand-in built from curated target
+  data: 1.0 if the pair already shares a known target, 0.5 if there's no
+  known shared target (plausible, just unconfirmed), 0.3 if either drug's
+  target isn't curated.
+- **Indication difference** is 1.0 for the cross-category pairs this page
+  shows (same-category pairs are filtered out entirely -- they aren't
+  surprising) and would be 0.2 for a same-category pair.
+
+The formula doesn't claim scientific precision. It exists to rank leads
+for further investigation, and the README says so plainly rather than
+dressing it up.
+
+## Cluster map
+
+Two more ways to ask "does side-effect similarity encode real biology?",
+this time visually and via unsupervised clustering rather than pairwise
+comparison:
+
+- **Dimensionality reduction.** `analysis.pca_projection()` and
+  `analysis.tsne_projection()` (scikit-learn) turn the 96-dimensional
+  fingerprint matrix into a 2D scatter, colored by therapeutic category or
+  known target family. Drugs from the same real-world class visibly
+  cluster in places (the PDE5 inhibitors, the 5-alpha reductase inhibitors,
+  the statins) purely from side-effect data.
+- **Clustering.** K-means or agglomerative (hierarchical) clustering runs
+  on the fingerprint matrix alone -- therapeutic category is never given to
+  the algorithm. `analysis.cluster_category_purity()` then checks how
+  concentrated each resulting cluster is in a single real category. Mean
+  purity sits around 40-50% depending on k and method: well above chance,
+  evidence the method recovers real structure, but nowhere near 100% --
+  the imperfection is itself informative, and is presented as such rather
+  than only showing the clusters that worked.
+
 ## Validated case studies
 
 Three documented repurposing stories are used to sanity-check the method
@@ -285,6 +348,16 @@ baseline for comparison.
   — a side effect that looks "rare" here might not be rare in reality. The
   weighted-vs-unweighted correlation comparison would be worth re-running
   once real SIDER data is plugged in.
+- Therapeutic category curation (`drug_categories.csv`) is a simplification
+  at a similar granularity to target curation — real drugs often straddle
+  categories (aspirin is both an NSAID and an antiplatelet), and category
+  strings were deliberately unified for drugs in the same well-known class
+  (e.g. all PDE5 inhibitors) so they wouldn't falsely register as
+  "surprising" cross-category pairs.
+- PCA/t-SNE and clustering are run on a 61-drug, 96-side-effect matrix —
+  small enough that results (especially t-SNE, which is sensitive to
+  sample size) should be read as illustrative, not as a claim about the
+  true geometry of drug side-effect space.
 
 ## Running locally
 
@@ -318,4 +391,4 @@ package versions so the cloud environment matches local development.
 
 ## Tech stack
 
-Python · Streamlit · pandas · NumPy · Plotly · PyArrow · RDKit (data prep) · 3Dmol.js
+Python · Streamlit · pandas · NumPy · Plotly · PyArrow · scikit-learn · RDKit (data prep) · 3Dmol.js

@@ -15,7 +15,15 @@ import plotly.graph_objects as go
 import streamlit as st
 import streamlit.components.v1 as components
 
-from similarity import idf_weights, load_matrix, similarity_matrix, top_n_similar
+from analysis import (
+    cluster_category_purity,
+    cluster_drugs,
+    load_categories,
+    pca_projection,
+    surprising_pairs,
+    tsne_projection,
+)
+from similarity import explain_similarity, idf_weights, load_matrix, similarity_matrix, top_n_similar
 from targets import (
     all_pairs_target_overlap,
     drug_reframing_signals,
@@ -174,6 +182,26 @@ def get_reframings() -> pd.DataFrame:
     return load_reframings()
 
 
+@st.cache_data
+def get_categories() -> pd.DataFrame:
+    return load_categories()
+
+
+@st.cache_data
+def get_pca(_matrix: pd.DataFrame) -> pd.DataFrame:
+    return pca_projection(_matrix)
+
+
+@st.cache_data
+def get_tsne(_matrix: pd.DataFrame) -> pd.DataFrame:
+    return tsne_projection(_matrix)
+
+
+@st.cache_data
+def get_clusters(_matrix: pd.DataFrame, n_clusters: int, method: str) -> pd.Series:
+    return cluster_drugs(_matrix, n_clusters=n_clusters, method=method)
+
+
 def target_badge_html(query: str, other: str, targets: pd.DataFrame) -> str:
     relationship = target_relationship(query, other, targets)
     if relationship == "shared":
@@ -185,20 +213,41 @@ def target_badge_html(query: str, other: str, targets: pd.DataFrame) -> str:
     return '<span class="sm-badge sm-badge-unknown">Target unknown</span>'
 
 
-def render_results_cards(results: pd.DataFrame, query: str, targets: pd.DataFrame) -> None:
+def render_results_cards(
+    results: pd.DataFrame,
+    query: str,
+    targets: pd.DataFrame,
+    matrix: pd.DataFrame | None = None,
+    categories: pd.DataFrame | None = None,
+    weighted: bool = True,
+) -> None:
     for _, row in results.iterrows():
+        other = row["drug_name"]
         tags = "".join(
             f'<span class="sm-tag">{se}</span>'
             for se in row["shared_side_effects"].split(", ")
             if se
         )
-        badge = target_badge_html(query, row["drug_name"], targets)
+        badge = target_badge_html(query, other, targets)
+        category_line = ""
+        if categories is not None and other in categories.index:
+            category_line = f'<div class="sm-caption">{categories.loc[other, "therapeutic_category"]}</div>'
+
+        explanation_line = ""
+        if matrix is not None:
+            explanation = explain_similarity(query, other, matrix, weighted=weighted, top_k=3)
+            if not explanation.empty:
+                terms = ", ".join(explanation["side_effect"])
+                explanation_line = f'<div class="sm-caption">Driven mostly by: {terms}</div>'
+
         st.markdown(
             f"""
             <div class="sm-card">
-                <h4>{row['drug_name']} <span class="sm-score">{row['similarity']:.1%} match</span></h4>
+                <h4>{other} <span class="sm-score">{row['similarity']:.1%} match</span></h4>
+                {category_line}
                 <div class="sm-caption">{row['n_shared']} shared side effects</div>
                 <div style="margin-top:0.4rem;">{tags}</div>
+                {explanation_line}
                 <div>{badge}</div>
             </div>
             """,
@@ -375,6 +424,16 @@ def search_tab(matrix: pd.DataFrame) -> None:
         st.info("Choose a drug above to see its closest side-effect matches.")
         return
 
+    categories = get_categories()
+    targets = get_targets()
+    category = categories.loc[drug, "therapeutic_category"] if drug in categories.index else "unknown"
+    target = targets.loc[drug, "primary_target"] if drug in targets.index else "unknown"
+    n_effects = int(matrix.loc[drug].sum())
+    st.markdown(
+        f"**{drug}** &nbsp;·&nbsp; {category} &nbsp;·&nbsp; target: {target} "
+        f"&nbsp;·&nbsp; {n_effects} documented side effects"
+    )
+
     render_reframing_signals(drug, matrix)
 
     results = top_n_similar(drug, matrix, n=n, metric=metric, weighted=weighted)
@@ -382,7 +441,6 @@ def search_tab(matrix: pd.DataFrame) -> None:
         st.warning("No other drugs share any side effects with this one in the demo dataset.")
         return
 
-    targets = get_targets()
     left, right = st.columns([1, 1])
     with left:
         weight_note = " (IDF-weighted)" if weighted else " (unweighted)"
@@ -392,7 +450,7 @@ def search_tab(matrix: pd.DataFrame) -> None:
             "off-target hypothesis -- high side-effect similarity with no "
             "known shared target, worth investigating.".format(drug)
         )
-        render_results_cards(results, drug, targets)
+        render_results_cards(results, drug, targets, matrix=matrix, categories=categories, weighted=weighted)
     with right:
         render_score_chart(results, drug)
         render_fingerprint_heatmap(matrix, drug, results)
@@ -624,6 +682,177 @@ def off_target_tab(matrix: pd.DataFrame) -> None:
         st.dataframe(candidates, use_container_width=True, hide_index=True)
 
 
+def surprising_pairs_tab(matrix: pd.DataFrame) -> None:
+    st.subheader("Surprising pairs")
+    st.write(
+        "The investigation this whole app is built around, run directly: "
+        "which drug pairs are highly similar by side effects despite "
+        "treating completely different conditions? A drug for epilepsy and "
+        "a drug for hypertension showing 0.87 cosine similarity is exactly "
+        "the kind of lead indication-based search would never surface."
+    )
+
+    c1, c2, c3 = st.columns([2, 1, 1])
+    with c1:
+        min_sim = st.slider(
+            "Minimum similarity", min_value=0.1, max_value=0.9, value=0.3, step=0.05,
+            key="sp_min_sim",
+        )
+    with c2:
+        metric = st.radio("Metric", options=["cosine", "jaccard"], format_func=str.title,
+                            key="sp_metric")
+    with c3:
+        sort_by = st.radio(
+            "Sort by", options=["similarity", "repurposing_score"],
+            format_func=lambda s: "Similarity" if s == "similarity" else "Repurposing score",
+            key="sp_sort",
+        )
+
+    weighted = st.checkbox("IDF-weighted", value=True, key="sp_weighted")
+
+    sims = get_similarity(matrix, metric, weighted)
+    categories = get_categories()
+    targets = get_targets()
+    pairs = surprising_pairs(sims, categories, targets, min_similarity=min_sim, n=20, sort_by=sort_by)
+
+    if pairs.empty:
+        st.info("No cross-category pairs at this similarity threshold -- try lowering it.")
+        return
+
+    st.markdown(f"#### Top {len(pairs)} surprising pairs")
+    for _, row in pairs.iterrows():
+        with st.container(border=True):
+            badge_class = {
+                "shared": "sm-badge-shared", "off_target": "sm-badge-off-target",
+                "unknown": "sm-badge-unknown",
+            }[row["target_relationship"]]
+            badge_text = {
+                "shared": "Known shared target", "off_target": "No known shared target",
+                "unknown": "Target unknown",
+            }[row["target_relationship"]]
+            st.markdown(
+                f"**{row['drug_a']}** ({row['category_a']}) ↔ "
+                f"**{row['drug_b']}** ({row['category_b']})  \n"
+                f"<span class='sm-score'>{row['similarity']:.1%} similarity</span> "
+                f"<span class='sm-badge {badge_class}'>{badge_text}</span> "
+                f"<span class='sm-caption'>repurposing score: {row['repurposing_score']:.3f}</span>",
+                unsafe_allow_html=True,
+            )
+            st.caption(f"{row['drug_a']}: {row['target_a']}  \n{row['drug_b']}: {row['target_b']}")
+
+            explanation = explain_similarity(row["drug_a"], row["drug_b"], matrix, weighted=weighted)
+            if not explanation.empty:
+                terms = ", ".join(
+                    f"{r['side_effect']} ({r['pct_of_shared_weight']:.0f}%)"
+                    for _, r in explanation.iterrows()
+                )
+                st.caption(f"Strongest contributing shared side effects: {terms}")
+
+            with st.expander("3D structures and properties"):
+                render_structure_row([row["drug_a"], row["drug_b"]])
+
+    with st.expander("View as data table"):
+        st.dataframe(pairs, use_container_width=True, hide_index=True)
+
+    st.markdown("---")
+    st.markdown("#### The repurposing score")
+    st.latex(
+        r"\text{Repurposing Score} = \text{Side-effect similarity} "
+        r"\times \text{Biological plausibility} \times \text{Indication difference}"
+    )
+    st.write(
+        "An **exploratory** ranking, not a validated clinical metric. "
+        "Biological plausibility is a stand-in built from curated target "
+        "data: 1.0 if the pair already shares a known target, 0.5 if "
+        "there's no known shared target (plausible, unconfirmed), 0.3 if "
+        "either drug's target isn't curated at all. Indication difference "
+        "is 1.0 for a genuine cross-category pair (all pairs on this page) "
+        "and would be 0.2 for same-category pairs, which this page filters "
+        "out entirely since they're not surprising. The formula is "
+        "deliberately simple -- it exists to rank leads for further "
+        "investigation, not to make a scientific claim about any one pair."
+    )
+
+
+def cluster_map_tab(matrix: pd.DataFrame) -> None:
+    st.subheader("Cluster map")
+    st.write(
+        "Turn the 96-dimensional side-effect fingerprint space into "
+        "something you can actually look at. If drugs with similar "
+        "mechanisms cluster together using nothing but side-effect data -- "
+        "no indication, no target, no drug class -- that's a strong visual "
+        "argument that the fingerprints are picking up real biology."
+    )
+
+    method = st.radio("Projection", options=["PCA", "t-SNE"], horizontal=True)
+    color_by = st.radio(
+        "Color by", options=["therapeutic_category", "target_family"],
+        format_func=lambda s: "Therapeutic category" if s == "therapeutic_category" else "Known target family",
+        horizontal=True,
+    )
+
+    coords = get_pca(matrix) if method == "PCA" else get_tsne(matrix)
+    categories = get_categories()
+    targets = get_targets()
+    color_source = categories["therapeutic_category"] if color_by == "therapeutic_category" else targets["target_family"]
+
+    plot_df = coords.join(color_source.rename("group"), how="left")
+    plot_df["group"] = plot_df["group"].fillna("unknown")
+
+    fig = go.Figure()
+    for group, sub in plot_df.groupby("group"):
+        fig.add_trace(
+            go.Scatter(
+                x=sub["x"], y=sub["y"], mode="markers+text",
+                text=sub.index, textposition="top center",
+                textfont=dict(size=8),
+                name=group[:40],
+                marker=dict(size=9),
+            )
+        )
+    fig.update_layout(
+        title=f"{method} projection of side-effect fingerprints",
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        margin=dict(l=10, r=10, t=40, b=10),
+        height=650,
+        legend=dict(font=dict(size=9)),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("---")
+    st.markdown("#### Clustering: does grouping by side effects alone recover drug classes?")
+    st.write(
+        "K-means or hierarchical clustering on the raw fingerprint matrix "
+        "(therapeutic category is never given to the clustering algorithm) "
+        "-- then check how concentrated each resulting cluster is in a "
+        "single real-world drug class. High purity means side-effect "
+        "similarity alone was enough to reconstruct known pharmacology."
+    )
+    cc1, cc2 = st.columns(2)
+    with cc1:
+        cluster_method = st.radio(
+            "Clustering method", options=["kmeans", "hierarchical"],
+            format_func=lambda s: "K-means" if s == "kmeans" else "Hierarchical",
+            horizontal=True,
+        )
+    with cc2:
+        n_clusters = st.slider("Number of clusters", min_value=4, max_value=20, value=10)
+
+    clusters = get_clusters(matrix, n_clusters, cluster_method)
+    purity = cluster_category_purity(clusters, categories)
+    st.metric("Mean cluster purity", f"{purity['purity'].mean():.1%}")
+    st.dataframe(purity, use_container_width=True, hide_index=True)
+    st.caption(
+        "Purity of 1.0 means every drug in that cluster shares the same "
+        "therapeutic category. Purity well below 1.0 for most clusters is "
+        "expected and informative, not a failure: it's the same story as "
+        "the off-target hypotheses tab -- drugs from different classes "
+        "landing in the same side-effect cluster are exactly the surprising "
+        "pairs worth a closer look, not noise to explain away."
+    )
+
+
 def about_tab(matrix: pd.DataFrame) -> None:
     st.subheader("Methodology")
     st.markdown(
@@ -727,6 +956,27 @@ def about_tab(matrix: pd.DataFrame) -> None:
         Search tab, and across the whole dataset on the Off-Target
         Hypotheses tab.
 
+        **Surprising pairs.** The Search and Off-Target Hypotheses tabs work
+        one query drug at a time. The Surprising Pairs tab runs the same
+        idea as a dataset-wide scan: every drug pair above a similarity
+        threshold that belongs to *different curated therapeutic
+        categories* (`data/raw/drug_categories.csv`), with an explanation
+        layer showing exactly which shared side effects drive each score --
+        not just "0.82 similar," but "12 shared side effects, led by
+        neuropathy and dry mouth." Each pair also gets an exploratory
+        **repurposing score** (similarity x biological plausibility x
+        indication difference) for ranking leads; see that tab for the
+        formula and its explicit caveats.
+
+        **Cluster map.** A PCA or t-SNE projection turns the 96-dimensional
+        fingerprint space into a 2D scatter plot, colored by therapeutic
+        category or target family -- if same-class drugs cluster together
+        visually, that's evidence the fingerprints encode real pharmacology.
+        The same tab runs K-means or hierarchical clustering on fingerprints
+        alone (categories are never given to the algorithm) and measures
+        cluster purity against the real drug classes -- a quantitative,
+        not just visual, version of the same question.
+
         **3D structures.** Each drug's structure is generated offline from a
         curated SMILES string with RDKit, validated against its expected
         molecular formula, and rendered with a locally vendored copy of
@@ -774,8 +1024,11 @@ def main() -> None:
             "[Source](https://github.com/vstimpson/OffTarget)"
         )
 
-    tab1, tab2, tab3, tab4 = st.tabs(
-        ["Search", "Validated Case Studies", "Off-Target Hypotheses", "Methodology"]
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
+        [
+            "Search", "Validated Case Studies", "Off-Target Hypotheses",
+            "Surprising Pairs", "Cluster Map", "Methodology",
+        ]
     )
     with tab1:
         search_tab(matrix)
@@ -784,6 +1037,10 @@ def main() -> None:
     with tab3:
         off_target_tab(matrix)
     with tab4:
+        surprising_pairs_tab(matrix)
+    with tab5:
+        cluster_map_tab(matrix)
+    with tab6:
         about_tab(matrix)
 
 
