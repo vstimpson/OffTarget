@@ -810,15 +810,31 @@ def cluster_map_tab(matrix: pd.DataFrame) -> None:
                 marker=dict(size=9),
             )
         )
+    if method == "PCA":
+        axis_title = "Principal component {} (arbitrary units -- only relative distance matters)"
+    else:
+        axis_title = "t-SNE dimension {} (no fixed meaning -- only nearby points are comparable)"
     fig.update_layout(
         title=f"{method} projection of side-effect fingerprints",
+        xaxis_title=axis_title.format(1),
+        yaxis_title=axis_title.format(2),
         plot_bgcolor="white",
         paper_bgcolor="white",
-        margin=dict(l=10, r=10, t=40, b=10),
+        margin=dict(l=10, r=10, t=40, b=40),
         height=650,
         legend=dict(font=dict(size=9)),
     )
     st.plotly_chart(fig, use_container_width=True)
+    st.caption(
+        "Each point is one drug, positioned from its full 96-dimensional "
+        "side-effect fingerprint. Neither axis corresponds to a specific "
+        "side effect or has physical units -- PCA axes are directions of "
+        "greatest variance across all fingerprints combined; t-SNE axes "
+        "preserve which drugs are near neighbors, not true distances. What "
+        "matters is relative position: same-colored points landing close "
+        "together means side-effect data alone reconstructed a real drug "
+        "class, with no indication or target info given to the projection."
+    )
 
     st.markdown("---")
     st.markdown("#### Clustering: does grouping by side effects alone recover drug classes?")
