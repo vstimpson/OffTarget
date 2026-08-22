@@ -776,8 +776,44 @@ def surprising_pairs_tab(matrix: pd.DataFrame) -> None:
 
 def cluster_map_tab(matrix: pd.DataFrame) -> None:
     st.subheader("Cluster map")
-    st.write(
-    )
+
+    with st.expander("What's the difference between PCA and t-SNE?"):
+        st.markdown(
+            """
+**PCA (Principal Component Analysis)** is a linear projection. It finds
+the two directions through the 96-dimensional side-effect space that
+capture the most spread (variance) across all 61 drugs, and plots each
+drug's position along those two directions. Because it's linear and
+deterministic, the same drug always lands in the same place, and the axes
+have a real, if abstract, meaning: "direction of most variation," "second
+most variation." Its weakness: if the interesting structure in the data is
+a tight, non-linear clustering rather than broad spread, PCA can wash it
+out. Two genuinely similar drugs can end up looking far apart if the
+dominant variance in the dataset runs a different direction.
+
+**t-SNE (t-distributed Stochastic Neighbor Embedding)** is non-linear, and
+optimized for a different goal: keep points that are close neighbors in
+the original 96D space close together in the 2D plot, without caring
+whether it preserves distances between far-apart points or the overall
+shape. This is why it tends to produce visually tighter, more dramatic
+clusters than PCA, since it's built specifically to reveal local grouping.
+The tradeoffs: it's stochastic (a different random seed can shuffle the
+layout, though the seed is fixed here for reproducibility), sensitive to a
+tuning parameter (perplexity), and, importantly, you cannot compare the
+distance between two far-apart clusters and conclude anything from it.
+Only "near" versus "not near" is meaningful.
+
+**Why both are offered side by side:** they fail in different ways, so
+agreement between them is more convincing than either alone. If two drugs
+land close together under both PCA (a global, linear method) and t-SNE (a
+local, non-linear method), that's a stronger signal than either method
+individually, since it isn't just an artifact of one algorithm's
+particular bias. Where they disagree is also informative: it flags cases
+where "closeness" depends on which notion of similarity is used, which is
+worth being upfront about rather than picking one method and presenting
+it as definitive.
+            """
+        )
 
     method = st.radio("Projection", options=["PCA", "t-SNE"], horizontal=True)
     color_by = st.radio(
@@ -834,21 +870,25 @@ def cluster_map_tab(matrix: pd.DataFrame) -> None:
     st.markdown("---")
     st.markdown("#### Clustering: does grouping by side effects alone recover drug classes?")
     st.write(
-        "We group drugs together based only on how similar their side effect patterns are"
-        "using clustering mechanisms such as K-means or hierachial clustering"
-        "The algorithm is not tolf what type of drug each one is."
-        "Afer the drugs are created, we compare them withthe drug' real therapuetic classes"
-        "If most drugs in a cluster belong to the same known drug class, that cluster has high purity"
-        "This suggests that side-effect patterns alone contain enogh information to recover meaningul"
-        "similartities in how drugs work."
-
-        "K-means clustering makes you choose the number of groups, K, in advance"
-        "For example: if there are 100 drugs and K = 5, the algorithm will try divide those drugs into five groups" 
-        "Hierarchial clustering builds a family tree of drugs."
-        "The algorithm finds the two most simlar drugs and joins them, then it finds the next closest drug or group"
-        "and eventually everything becomes connected." 
-        "The result is shown as a dendrogram, which looks like a tree. Drugs whose branches join earlier down the tree"
-        "are more simialr." 
+        "We group drugs together based only on how similar their side "
+        "effect patterns are, using clustering methods such as K-means or "
+        "hierarchical clustering. The algorithm is never told what type of "
+        "drug each one is. After the clusters are formed, we compare them "
+        "with the drugs' real therapeutic classes. If most drugs in a "
+        "cluster belong to the same known drug class, that cluster has "
+        "high purity, which suggests that side-effect patterns alone "
+        "contain enough information to recover meaningful similarities in "
+        "how drugs work."
+    )
+    st.write(
+        "K-means clustering makes you choose the number of groups, K, in "
+        "advance. For example, with 100 drugs and K = 5, the algorithm "
+        "tries to divide those drugs into five groups. Hierarchical "
+        "clustering instead builds a family tree of drugs: it finds the "
+        "two most similar drugs and joins them, then finds the next "
+        "closest drug or group, and so on until everything is connected. "
+        "The table below shows the resulting cluster each drug ended up "
+        "in either way, not the full tree structure."
     )
     cc1, cc2 = st.columns(2)
     with cc1:
