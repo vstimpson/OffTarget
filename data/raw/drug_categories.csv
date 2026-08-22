@@ -1,0 +1,62 @@
+drug_name,therapeutic_category
+Alprazolam,Benzodiazepine
+Amlodipine,Calcium channel blocker (antihypertensive)
+Amoxicillin,Penicillin antibiotic
+Aspirin,NSAID / antiplatelet
+Atorvastatin,Statin (lipid-lowering)
+Azithromycin,Macrolide antibiotic
+Bupropion,Atypical antidepressant / smoking cessation aid
+Celecoxib,NSAID (COX-2 selective)
+Ciprofloxacin,Fluoroquinolone antibiotic
+Clopidogrel,Antiplatelet agent
+Diazepam,Benzodiazepine
+Diphenhydramine,Antihistamine (first-generation)
+Duloxetine,SNRI antidepressant
+Dutasteride,5-alpha reductase inhibitor
+Enalapril,ACE inhibitor (antihypertensive)
+Famotidine,H2 receptor antagonist (antacid)
+Finasteride,5-alpha reductase inhibitor
+Fluoxetine,SSRI antidepressant
+Gabapentin,Anticonvulsant / neuropathic pain agent
+Hydralazine,Direct vasodilator (antihypertensive)
+Hydrocortisone,Corticosteroid
+Hydroxyzine,Antihistamine (anxiolytic)
+Ibuprofen,NSAID
+Lenalidomide,Immunomodulatory agent (oncology)
+Levothyroxine,Thyroid hormone replacement
+Lisinopril,ACE inhibitor (antihypertensive)
+Loratadine,Antihistamine (second-generation)
+Losartan,Angiotensin receptor blocker (antihypertensive)
+Metformin,Biguanide (antidiabetic)
+Methylphenidate,CNS stimulant (ADHD)
+Metoprolol,Beta blocker (antihypertensive)
+Minoxidil,Direct vasodilator (antihypertensive / hair loss)
+Modafinil,Wakefulness-promoting agent
+Morphine,Opioid analgesic
+Naproxen,NSAID
+Olanzapine,Atypical antipsychotic
+Omeprazole,Proton pump inhibitor
+Oxycodone,Opioid analgesic
+Paroxetine,SSRI antidepressant
+Pomalidomide,Immunomodulatory agent (oncology)
+Prednisone,Corticosteroid
+Pregabalin,Anticonvulsant / neuropathic pain agent
+Propranolol,Beta blocker (antihypertensive)
+Quetiapine,Atypical antipsychotic
+Raloxifene,Selective estrogen receptor modulator (osteoporosis)
+Risperidone,Atypical antipsychotic
+Rosuvastatin,Statin (lipid-lowering)
+Sertraline,SSRI antidepressant
+Sildenafil,PDE5 inhibitor
+Simvastatin,Statin (lipid-lowering)
+Sitagliptin,DPP-4 inhibitor (antidiabetic)
+Tadalafil,PDE5 inhibitor
+Tamoxifen,Selective estrogen receptor modulator (oncology)
+Thalidomide,Immunomodulatory agent (oncology)
+Topiramate,Anticonvulsant / migraine prophylaxis
+Tramadol,Opioid analgesic
+Valproate,Anticonvulsant / mood stabilizer
+Vardenafil,PDE5 inhibitor
+Varenicline,Smoking cessation aid
+Venlafaxine,SNRI antidepressant
+Warfarin,Anticoagulant

@@ -107,6 +107,44 @@ def similarity_matrix(
     return cosine_similarity_matrix(apply_weights(matrix, weights))
 
 
+def explain_similarity(
+    drug_a: str,
+    drug_b: str,
+    matrix: pd.DataFrame,
+    weighted: bool = True,
+    top_k: int = 5,
+) -> pd.DataFrame:
+    """Break a pair's similarity down into its shared side effects, ranked by
+    how much each one actually contributes -- the "why" behind a score.
+
+    Returns columns: side_effect, weight, pct_of_shared_weight, sorted by
+    weight descending. With weighted=True, "weight" is the IDF weight
+    (bigger = rarer = more informative); with weighted=False every shared
+    side effect gets weight 1 and the ranking is arbitrary but the shared
+    set itself is still useful to show.
+    """
+    if drug_a not in matrix.index or drug_b not in matrix.index:
+        return pd.DataFrame(columns=["side_effect", "weight", "pct_of_shared_weight"])
+
+    shared = matrix.columns[(matrix.loc[drug_a] == 1) & (matrix.loc[drug_b] == 1)]
+    if len(shared) == 0:
+        return pd.DataFrame(columns=["side_effect", "weight", "pct_of_shared_weight"])
+
+    weights = idf_weights(matrix) if weighted else pd.Series(1.0, index=matrix.columns)
+    contrib = weights.loc[shared].sort_values(ascending=False)
+    total = contrib.sum()
+    pct = (contrib / total * 100) if total > 0 else contrib * 0
+
+    result = pd.DataFrame(
+        {
+            "side_effect": contrib.index,
+            "weight": contrib.values.round(3),
+            "pct_of_shared_weight": pct.values.round(1),
+        }
+    ).reset_index(drop=True)
+    return result.head(top_k) if top_k else result
+
+
 def resolve_drug_name(query: str, available: list[str]) -> str | None:
     """Case-insensitive exact match, falling back to the closest fuzzy match."""
     lookup = {name.lower(): name for name in available}
