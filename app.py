@@ -406,8 +406,15 @@ def search_tab(matrix: pd.DataFrame) -> None:
         drug = st.selectbox("Drug", options=sorted(matrix.index), index=None,
                              placeholder="Start typing a drug name...")
     with col2:
-        metric = st.radio("Similarity metric", options=["jaccard", "cosine"],
-                            format_func=str.title)
+        metric = st.radio(
+            "Similarity metric", options=["jaccard", "cosine"], format_func=str.title,
+            help="Two ways to score how much two checklists overlap. "
+                 "Jaccard: shared side effects divided by all side effects "
+                 "either drug has. Cosine: a similar idea, just more "
+                 "forgiving toward drugs with a lot of reported side "
+                 "effects. They usually agree; the exact number rarely "
+                 "matters as much as the ranking.",
+        )
     with col3:
         n = st.slider("Top N", min_value=3, max_value=20, value=8)
     with col4:
@@ -616,13 +623,18 @@ def render_target_validation(matrix: pd.DataFrame) -> None:
 def off_target_tab(matrix: pd.DataFrame) -> None:
     st.subheader("Off-target hypotheses")
     st.write(
-        "Campillos et al. (*Science*, 2008) proposed side-effect similarity "
-        "not just to find repurposing candidates, but to predict shared "
-        "molecular **targets**, including ones nobody had linked a drug "
-        "to before. Two views of that idea live on this tab: which drug "
-        "*pairs* look related through a target nobody's confirmed yet, and "
-        "further down, which specific *side effects* have real precedent "
-        "for becoming a drug's actual purpose."
+        "When two drugs share a lot of side effects, there are two "
+        "possibilities: either scientists already know why (they act on "
+        "the same target in the body), or nobody has confirmed a reason "
+        "yet. That second case is the interesting one: it's a hint that "
+        "two drugs might work through a related mechanism that hasn't "
+        "been pinned down. This idea comes from a real study (Campillos et "
+        "al., *Science*, 2008), which used exactly this logic to predict "
+        "molecular targets nobody had linked to a given drug before. Two "
+        "views of it live on this tab: which drug *pairs* look related "
+        "with no confirmed reason yet, and further down, which specific "
+        "*side effects* have real precedent for becoming a drug's actual "
+        "purpose."
     )
 
     sl_col, cb_col = st.columns([3, 1])
@@ -630,6 +642,8 @@ def off_target_tab(matrix: pd.DataFrame) -> None:
         min_sim = st.slider(
             "Minimum side-effect similarity (Jaccard)", min_value=0.1, max_value=0.9,
             value=0.25, step=0.05,
+            help="How much side-effect checklist overlap a pair needs before "
+                 "it counts. Higher means fewer, more strongly matched pairs.",
         )
     with cb_col:
         weighted = st.checkbox("IDF-weighted", value=True, key="offtarget_weighted")
@@ -697,10 +711,19 @@ def surprising_pairs_tab(matrix: pd.DataFrame) -> None:
         min_sim = st.slider(
             "Minimum similarity", min_value=0.1, max_value=0.9, value=0.3, step=0.05,
             key="sp_min_sim",
+            help="How much side-effect checklist overlap a pair needs "
+                 "before it shows up below. Higher means fewer, more "
+                 "strongly matched pairs.",
         )
     with c2:
-        metric = st.radio("Metric", options=["cosine", "jaccard"], format_func=str.title,
-                            key="sp_metric")
+        metric = st.radio(
+            "Metric", options=["cosine", "jaccard"], format_func=str.title, key="sp_metric",
+            help="Two ways to score how much two checklists overlap. "
+                 "Jaccard: shared side effects divided by all side effects "
+                 "either drug has. Cosine: a similar idea, just more "
+                 "forgiving toward drugs with a lot of reported side "
+                 "effects.",
+        )
     with c3:
         sort_by = st.radio(
             "Sort by", options=["similarity", "repurposing_score"],
@@ -776,12 +799,20 @@ def surprising_pairs_tab(matrix: pd.DataFrame) -> None:
 
 def cluster_map_tab(matrix: pd.DataFrame) -> None:
     st.subheader("Cluster map")
+    st.write(
+        "Every drug here is really just a checklist of up to 96 possible "
+        "side effects (see the glossary in the sidebar if any term on this "
+        "page is unfamiliar). This tab draws those checklists as a picture "
+        "you can look at, and checks whether drugs that end up looking "
+        "alike by their checklist alone also happen to be the same kind of "
+        "drug in real life."
+    )
 
     with st.expander("What's the difference between PCA and t-SNE?"):
         st.markdown(
             """
 **PCA (Principal Component Analysis)** is a linear projection. It finds
-the two directions through the 96-dimensional side-effect space that
+the two directions through the 96-item side-effect checklist that
 capture the most spread (variance) across all 61 drugs, and plots each
 drug's position along those two directions. Because it's linear and
 deterministic, the same drug always lands in the same place, and the axes
@@ -857,10 +888,10 @@ it as definitive.
     )
     st.plotly_chart(fig, use_container_width=True)
     st.caption(
-        "Each point is one drug, positioned from its full 96-dimensional "
-        "side-effect fingerprint. Neither axis corresponds to a specific "
+        "Each point is one drug, positioned using its full 96-item "
+        "side-effect checklist. Neither axis corresponds to a specific "
         "side effect or has physical units. PCA axes are directions of "
-        "greatest variance across all fingerprints combined; t-SNE axes "
+        "greatest variance across all checklists combined; t-SNE axes "
         "preserve which drugs are near neighbors, not true distances. What "
         "matters is relative position: same-colored points landing close "
         "together means side-effect data alone reconstructed a real drug "
@@ -1029,14 +1060,15 @@ def about_tab(matrix: pd.DataFrame) -> None:
         indication difference) for ranking leads; see that tab for the
         formula and its explicit caveats.
 
-        **Cluster map.** A PCA or t-SNE projection turns the 96-dimensional
-        fingerprint space into a 2D scatter plot, colored by therapeutic
-        category or target family -- if same-class drugs cluster together
-        visually, that's evidence the fingerprints encode real pharmacology.
-        The same tab runs K-means or hierarchical clustering on fingerprints
-        alone (categories are never given to the algorithm) and measures
-        cluster purity against the real drug classes -- a quantitative,
-        not just visual, version of the same question.
+        **Cluster map.** A PCA or t-SNE projection turns each drug's 96-item
+        side-effect checklist into a single dot on a 2D picture, colored by
+        therapeutic category or target family -- if same-class drugs cluster
+        together visually, that's evidence the checklists encode real
+        pharmacology. The same tab runs K-means or hierarchical clustering
+        on the checklists alone (categories are never given to the
+        algorithm) and measures cluster purity against the real drug
+        classes -- a quantitative, not just visual, version of the same
+        question.
 
         **3D structures.** Each drug's structure is generated offline from a
         curated SMILES string with RDKit, validated against its expected
@@ -1076,6 +1108,43 @@ def main() -> None:
             "side-effect profile -- potential repurposing leads driven by "
             "shared biology, not shared indication."
         )
+        with st.expander("New here? Plain-language glossary"):
+            st.markdown(
+                """
+**Side-effect checklist (the "fingerprint").** Picture a list of every
+side effect in the dataset, 96 of them. Each drug gets a checkmark next
+to every side effect it's known to cause, and an empty box for every one
+it doesn't. That checklist is all this app actually knows about a drug.
+
+**Similarity score.** How much two drugs' checklists overlap. If two
+drugs both check off "dizziness," "flushing," and "headache" and little
+else, they score high, even if one treats heart disease and the other
+treats depression.
+
+**Target.** The specific protein in the body a drug physically locks
+onto, like a lock and key: a receptor, an enzyme, a channel. Two drugs
+can look completely different chemically and still act on the same
+target.
+
+**Off-target hypothesis.** Two drugs whose checklists overlap a lot, but
+where nobody has confirmed they share a target. Worth investigating, not
+a proven finding.
+
+**The map (PCA / t-SNE).** Two different ways of drawing all the drugs'
+checklists as dots on a single page, positioned so similar checklists
+land near each other. Think of it like a seating chart based purely on
+who has the same interests, not a physical map with real distances.
+
+**Clustering.** Automatically sorting drugs into groups based only on
+their checklists, then checking whether those groups happen to match
+real, known drug classes.
+
+**Repurposing score.** An exploratory ranking that combines the
+similarity score with how plausible a shared mechanism is and how
+different the two drugs' current uses are, meant for prioritizing leads,
+not as a scientific verdict.
+                """
+            )
         st.markdown("---")
         st.markdown(
             f"**Dataset:** {matrix.shape[0]} drugs, {matrix.shape[1]} side effects"
