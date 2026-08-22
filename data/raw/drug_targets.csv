@@ -1,0 +1,62 @@
+drug_name,primary_target,target_family
+Alprazolam,GABA-A receptor (benzodiazepine site),GABA-A receptor
+Amlodipine,L-type calcium channel (Cav1.2),L-type calcium channel
+Amoxicillin,Penicillin-binding proteins,Penicillin-binding proteins
+Aspirin,Cyclooxygenase (COX-1/COX-2),Cyclooxygenase (COX)
+Atorvastatin,HMG-CoA reductase,HMG-CoA reductase
+Azithromycin,Bacterial 50S ribosomal subunit,Bacterial ribosome (50S)
+Bupropion,Norepinephrine-dopamine reuptake transporter,Norepinephrine-dopamine reuptake transporter
+Celecoxib,Cyclooxygenase-2 (COX-2),Cyclooxygenase (COX)
+Ciprofloxacin,Bacterial DNA gyrase / topoisomerase IV,Bacterial DNA gyrase/topoisomerase
+Clopidogrel,P2Y12 platelet receptor,P2Y12 receptor
+Diazepam,GABA-A receptor (benzodiazepine site),GABA-A receptor
+Diphenhydramine,Histamine H1 receptor,Histamine H1 receptor
+Duloxetine,Serotonin-norepinephrine reuptake transporter,Serotonin-norepinephrine reuptake transporter
+Dutasteride,5-alpha reductase (types 1 and 2),5-alpha reductase
+Enalapril,Angiotensin-converting enzyme (ACE),Angiotensin-converting enzyme (ACE)
+Famotidine,Histamine H2 receptor,Histamine H2 receptor
+Finasteride,5-alpha reductase (type 2),5-alpha reductase
+Fluoxetine,Serotonin reuptake transporter (SERT),Serotonin reuptake transporter (SERT)
+Gabapentin,Voltage-gated calcium channel (alpha2-delta subunit),Voltage-gated calcium channel (alpha2-delta)
+Hydralazine,Direct vasodilator (molecular mechanism not fully resolved),Direct vasodilator (unresolved mechanism)
+Hydrocortisone,Glucocorticoid receptor,Glucocorticoid receptor
+Hydroxyzine,Histamine H1 receptor,Histamine H1 receptor
+Ibuprofen,Cyclooxygenase (COX-1/COX-2),Cyclooxygenase (COX)
+Lenalidomide,Cereblon (CRBN) / E3 ubiquitin ligase complex,Cereblon (CRBN)
+Levothyroxine,Thyroid hormone receptor,Thyroid hormone receptor
+Lisinopril,Angiotensin-converting enzyme (ACE),Angiotensin-converting enzyme (ACE)
+Loratadine,Histamine H1 receptor,Histamine H1 receptor
+Losartan,Angiotensin II receptor type 1 (AT1),Angiotensin II receptor (AT1)
+Metformin,AMP-activated protein kinase (AMPK) / mitochondrial complex I,AMP-activated protein kinase (AMPK)
+Methylphenidate,Dopamine-norepinephrine reuptake transporter,Dopamine-norepinephrine reuptake transporter
+Metoprolol,Beta-1 adrenergic receptor,Beta-1 adrenergic receptor
+Minoxidil,ATP-sensitive potassium channel (KATP),ATP-sensitive potassium channel (KATP)
+Modafinil,Dopamine reuptake transporter (DAT),Dopamine reuptake transporter (DAT)
+Morphine,Mu-opioid receptor,Mu-opioid receptor
+Naproxen,Cyclooxygenase (COX-1/COX-2),Cyclooxygenase (COX)
+Olanzapine,Dopamine D2 / Serotonin 5-HT2A receptors,Dopamine D2 / Serotonin 5-HT2A receptors
+Omeprazole,H+/K+-ATPase (gastric proton pump),H+/K+-ATPase (proton pump)
+Oxycodone,Mu-opioid receptor,Mu-opioid receptor
+Paroxetine,Serotonin reuptake transporter (SERT),Serotonin reuptake transporter (SERT)
+Pomalidomide,Cereblon (CRBN) / E3 ubiquitin ligase complex,Cereblon (CRBN)
+Prednisone,Glucocorticoid receptor,Glucocorticoid receptor
+Pregabalin,Voltage-gated calcium channel (alpha2-delta subunit),Voltage-gated calcium channel (alpha2-delta)
+Propranolol,Beta-adrenergic receptor (non-selective),Beta-adrenergic receptor (non-selective)
+Quetiapine,Dopamine D2 / Serotonin 5-HT2A receptors,Dopamine D2 / Serotonin 5-HT2A receptors
+Raloxifene,Estrogen receptor (selective modulator),Estrogen receptor (SERM)
+Risperidone,Dopamine D2 / Serotonin 5-HT2A receptors,Dopamine D2 / Serotonin 5-HT2A receptors
+Rosuvastatin,HMG-CoA reductase,HMG-CoA reductase
+Sertraline,Serotonin reuptake transporter (SERT),Serotonin reuptake transporter (SERT)
+Sildenafil,Phosphodiesterase type 5 (PDE5),Phosphodiesterase type 5 (PDE5)
+Simvastatin,HMG-CoA reductase,HMG-CoA reductase
+Sitagliptin,Dipeptidyl peptidase-4 (DPP-4),Dipeptidyl peptidase-4 (DPP-4)
+Tadalafil,Phosphodiesterase type 5 (PDE5),Phosphodiesterase type 5 (PDE5)
+Tamoxifen,Estrogen receptor (selective modulator),Estrogen receptor (SERM)
+Thalidomide,Cereblon (CRBN) / E3 ubiquitin ligase complex,Cereblon (CRBN)
+Topiramate,Sodium channels / GABA-A / AMPA-kainate receptors (multi-target),Broad-spectrum anticonvulsant (multi-target)
+Tramadol,Mu-opioid receptor (plus SNRI activity),Mu-opioid receptor
+Valproate,Sodium channels / GABA transaminase (multi-target),Broad-spectrum anticonvulsant (multi-target)
+Vardenafil,Phosphodiesterase type 5 (PDE5),Phosphodiesterase type 5 (PDE5)
+Varenicline,Nicotinic acetylcholine receptor (alpha4beta2),Nicotinic acetylcholine receptor (alpha4beta2)
+Venlafaxine,Serotonin-norepinephrine reuptake transporter,Serotonin-norepinephrine reuptake transporter
+Warfarin,Vitamin K epoxide reductase (VKORC1),Vitamin K epoxide reductase (VKORC1)
