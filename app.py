@@ -557,7 +557,7 @@ def render_target_validation(matrix: pd.DataFrame) -> None:
         "Down-weighting common side effects (headache, nausea) and "
         "up-weighting rare ones is a specific, testable claim: it should "
         "make similarity track known targets *more* closely, not less. "
-        "Same dataset, same pairs, same target curation -- only the "
+        "Same dataset, same pairs, same target curation only the "
         "weighting changes:"
     )
     wc1, wc2 = st.columns(2)
@@ -607,7 +607,7 @@ def render_target_validation(matrix: pd.DataFrame) -> None:
         "and a shared-target rate that climbs with similarity, is the general-case "
         "version of what the case studies show individually: this isn't just "
         "picking three examples that happen to work. It's also not proof the "
-        "method is reliable for any single pair -- most high-similarity pairs "
+        "method is reliable for any single pair, most high-similarity pairs "
         "*still* don't share a known target, which is exactly the off-target "
         "hypothesis space the previous tab explores."
     )
@@ -618,7 +618,7 @@ def off_target_tab(matrix: pd.DataFrame) -> None:
     st.write(
         "Campillos et al. (*Science*, 2008) proposed side-effect similarity "
         "not just to find repurposing candidates, but to predict shared "
-        "molecular **targets** -- including ones nobody had linked a drug "
+        "molecular **targets**, including ones nobody had linked a drug "
         "to before. Two views of that idea live on this tab: which drug "
         "*pairs* look related through a target nobody's confirmed yet, and "
         "further down, which specific *side effects* have real precedent "
@@ -658,7 +658,7 @@ def off_target_tab(matrix: pd.DataFrame) -> None:
             st.dataframe(hypotheses, use_container_width=True, hide_index=True)
 
         st.caption(
-            "These are computational leads, not findings -- they'd need "
+            "These are computational leads, not findings. They'd need "
             "experimental validation (e.g. binding assays) before meaning "
             "anything clinically, exactly as in the original Campillos et al. "
             "study."
@@ -670,7 +670,7 @@ def off_target_tab(matrix: pd.DataFrame) -> None:
         "The most direct version of this idea, generalized beyond three "
         "hardcoded stories: sildenafil's priapism became Viagra; "
         "minoxidil's hypertrichosis became Rogaine. Below, every other drug "
-        "in the dataset that shares one of these precedent side effects -- "
+        "in the dataset that shares one of these precedent side effects, "
         "an untapped candidate for the same reframed purpose, by the same "
         "logic."
     )
@@ -779,8 +779,8 @@ def cluster_map_tab(matrix: pd.DataFrame) -> None:
     st.write(
         "Turn the 96-dimensional side-effect fingerprint space into "
         "something you can actually look at. If drugs with similar "
-        "mechanisms cluster together using nothing but side-effect data -- "
-        "no indication, no target, no drug class -- that's a strong visual "
+        "mechanisms cluster together using nothing but side-effect data "
+        "(no indication, no target, no drug class) that's a strong visual "
         "argument that the fingerprints are picking up real biology."
     )
 
@@ -823,11 +823,21 @@ def cluster_map_tab(matrix: pd.DataFrame) -> None:
     st.markdown("---")
     st.markdown("#### Clustering: does grouping by side effects alone recover drug classes?")
     st.write(
-        "K-means or hierarchical clustering on the raw fingerprint matrix "
-        "(therapeutic category is never given to the clustering algorithm) "
-        "-- then check how concentrated each resulting cluster is in a "
-        "single real-world drug class. High purity means side-effect "
-        "similarity alone was enough to reconstruct known pharmacology."
+        "We group drugs together based only on how similar their side effect patterns are"
+        "using clustering mechanisms such as K-means or hierachial clustering"
+        "The algorithm is not tolf what type of drug each one is."
+        "Afer the drugs are created, we compare them withthe drug' real therapuetic classes"
+        "If most drugs in a cluster belong to the same known drug class, that cluster has high purity"
+        "This suggests that side-effect patterns alone contain enogh information to recover meaningul"
+        "similartities in how drugs work."
+
+        "K-means clustering makes you choose the number of groups, K, in advance"
+        "For example: if there are 100 drugs and K = 5, the algorithm will try divide those drugs into five groups" 
+        "Hierarchial clustering builds a family tree of drugs."
+        "The algorithm finds the two most simlar drugs and joins them, then it finds the next closest drug or group"
+        "and eventually everything becomes connected." 
+        "The result is shown as a dendrogram, which looks like a tree. Drugs whose branches join earlier down the tree"
+        "are more simialr." 
     )
     cc1, cc2 = st.columns(2)
     with cc1:
