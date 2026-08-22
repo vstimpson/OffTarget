@@ -16,10 +16,60 @@ from pathlib import Path
 import pandas as pd
 
 TARGETS_PATH = Path("data/raw/drug_targets.csv")
+REFRAMINGS_PATH = Path("data/raw/side_effect_reframings.csv")
 
 
 def load_targets(path: Path = TARGETS_PATH) -> pd.DataFrame:
     return pd.read_csv(path).set_index("drug_name")
+
+
+def load_reframings(path: Path = REFRAMINGS_PATH) -> pd.DataFrame:
+    """Side effects with real historical precedent for becoming the actual
+    therapeutic purpose of a drug (e.g. sildenafil's priapism -> Viagra).
+    """
+    return pd.read_csv(path)
+
+
+def drug_reframing_signals(drug: str, matrix: pd.DataFrame, reframings: pd.DataFrame) -> pd.DataFrame:
+    """Which of `drug`'s side effects have precedent for becoming a purpose.
+
+    Returns rows with side_effect, reframed_purpose, pioneer_drug, note, and
+    is_pioneer (True if `drug` itself is the drug that precedent came from).
+    """
+    if drug not in matrix.index:
+        return reframings.iloc[0:0]
+    drug_effects = set(matrix.columns[matrix.loc[drug] == 1])
+    hits = reframings[reframings["side_effect"].isin(drug_effects)].copy()
+    hits["is_pioneer"] = hits["pioneer_drug"] == drug
+    return hits.reset_index(drop=True)
+
+
+def reframing_candidates(matrix: pd.DataFrame, reframings: pd.DataFrame) -> pd.DataFrame:
+    """Scan the whole dataset: for every curated reframing, which drugs (other
+    than the pioneer) also share that side effect and are untapped candidates
+    for the same reframed purpose?
+    """
+    rows = []
+    for _, ref in reframings.iterrows():
+        side_effect = ref["side_effect"]
+        if side_effect not in matrix.columns:
+            continue
+        carriers = matrix.index[matrix[side_effect] == 1]
+        for drug in carriers:
+            if drug == ref["pioneer_drug"]:
+                continue
+            rows.append(
+                {
+                    "candidate_drug": drug,
+                    "side_effect": side_effect,
+                    "reframed_purpose": ref["reframed_purpose"],
+                    "pioneer_drug": ref["pioneer_drug"],
+                }
+            )
+    columns = ["candidate_drug", "side_effect", "reframed_purpose", "pioneer_drug"]
+    if not rows:
+        return pd.DataFrame(columns=columns)
+    return pd.DataFrame(rows, columns=columns).drop_duplicates().reset_index(drop=True)
 
 
 def target_relationship(drug_a: str, drug_b: str, targets: pd.DataFrame) -> str:
