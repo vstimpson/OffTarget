@@ -16,7 +16,14 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from similarity import load_matrix, similarity_matrix, top_n_similar
-from targets import load_targets, target_relationship, top_off_target_hypotheses
+from targets import (
+    drug_reframing_signals,
+    load_reframings,
+    load_targets,
+    reframing_candidates,
+    target_relationship,
+    top_off_target_hypotheses,
+)
 
 CLINICAL_SCALE = ["#F8FAFC", "#CCFBF1", "#5EEAD4", "#0D9488", "#134E4A"]
 STRUCTURES_DIR = Path("data/structures")
@@ -152,6 +159,11 @@ def get_similarity(_matrix: pd.DataFrame, metric: str) -> pd.DataFrame:
 @st.cache_data
 def get_targets() -> pd.DataFrame:
     return load_targets()
+
+
+@st.cache_data
+def get_reframings() -> pd.DataFrame:
+    return load_reframings()
 
 
 def target_badge_html(query: str, other: str, targets: pd.DataFrame) -> str:
@@ -300,6 +312,30 @@ def render_structure_row(drugs: list[str], height: int = 220) -> None:
             render_properties(drug, properties)
 
 
+def render_reframing_signals(drug: str, matrix: pd.DataFrame) -> None:
+    """Flag side effects of `drug` with real precedent for becoming the
+    actual therapeutic purpose -- the Viagra/Rogaine pattern generalized.
+    """
+    reframings = get_reframings()
+    signals = drug_reframing_signals(drug, matrix, reframings)
+    if signals.empty:
+        return
+
+    for _, row in signals.iterrows():
+        if row["is_pioneer"]:
+            st.success(
+                f"**{drug}** is the textbook example: its **{row['side_effect']}** "
+                f"side effect became **{row['reframed_purpose']}**. {row['note']}"
+            )
+        else:
+            st.info(
+                f"**{drug}** also causes **{row['side_effect']}**, the same side "
+                f"effect that became **{row['reframed_purpose']}** for "
+                f"**{row['pioneer_drug']}**. By that precedent, {drug} could be "
+                f"a candidate worth investigating for the same purpose."
+            )
+
+
 def search_tab(matrix: pd.DataFrame) -> None:
     st.subheader("Find repurposing candidates by side-effect similarity")
     st.write(
@@ -321,6 +357,8 @@ def search_tab(matrix: pd.DataFrame) -> None:
     if not drug:
         st.info("Choose a drug above to see its closest side-effect matches.")
         return
+
+    render_reframing_signals(drug, matrix)
 
     results = top_n_similar(drug, matrix, n=n, metric=metric)
     if results.empty:
@@ -421,11 +459,10 @@ def off_target_tab(matrix: pd.DataFrame) -> None:
         "Campillos et al. (*Science*, 2008) proposed side-effect similarity "
         "not just to find repurposing candidates, but to predict shared "
         "molecular **targets** -- including ones nobody had linked a drug "
-        "to before. A high-similarity pair that already shares a known "
-        "target confirms the method is picking up real biology. A "
-        "high-similarity pair with **no known shared target** is a genuine "
-        "hypothesis: these two drugs might affect the same underlying "
-        "pathway through a mechanism that hasn't been characterized yet."
+        "to before. Two views of that idea live on this tab: which drug "
+        "*pairs* look related through a target nobody's confirmed yet, and "
+        "further down, which specific *side effects* have real precedent "
+        "for becoming a drug's actual purpose."
     )
 
     min_sim = st.slider(
@@ -438,29 +475,47 @@ def off_target_tab(matrix: pd.DataFrame) -> None:
 
     if hypotheses.empty:
         st.info("No off-target hypotheses at this similarity threshold -- try lowering it.")
-        return
+    else:
+        st.markdown(f"#### Top {len(hypotheses)} off-target hypotheses in this dataset")
+        for _, row in hypotheses.iterrows():
+            with st.container(border=True):
+                st.markdown(
+                    f"**{row['drug_a']}** ↔ **{row['drug_b']}** "
+                    f"<span class='sm-score'>{row['similarity']:.1%} similarity</span>",
+                    unsafe_allow_html=True,
+                )
+                st.caption(
+                    f"{row['drug_a']}: {row['target_a']}  \n{row['drug_b']}: {row['target_b']}"
+                )
+                with st.expander("3D structures and properties"):
+                    render_structure_row([row["drug_a"], row["drug_b"]])
 
-    st.markdown(f"#### Top {len(hypotheses)} off-target hypotheses in this dataset")
-    for _, row in hypotheses.iterrows():
-        with st.container(border=True):
-            st.markdown(
-                f"**{row['drug_a']}** ↔ **{row['drug_b']}** "
-                f"<span class='sm-score'>{row['similarity']:.1%} similarity</span>",
-                unsafe_allow_html=True,
-            )
-            st.caption(f"{row['drug_a']}: {row['target_a']}  \n{row['drug_b']}: {row['target_b']}")
-            with st.expander("3D structures and properties"):
-                render_structure_row([row["drug_a"], row["drug_b"]])
+        with st.expander("View as data table"):
+            st.dataframe(hypotheses, use_container_width=True, hide_index=True)
 
-    with st.expander("View as data table"):
-        st.dataframe(hypotheses, use_container_width=True, hide_index=True)
+        st.caption(
+            "These are computational leads, not findings -- they'd need "
+            "experimental validation (e.g. binding assays) before meaning "
+            "anything clinically, exactly as in the original Campillos et al. "
+            "study."
+        )
 
-    st.caption(
-        "These are computational leads, not findings -- they'd need "
-        "experimental validation (e.g. binding assays) before meaning "
-        "anything clinically, exactly as in the original Campillos et al. "
-        "study."
+    st.markdown("---")
+    st.markdown("#### Reframed side effects: known precedent")
+    st.write(
+        "The most direct version of this idea, generalized beyond three "
+        "hardcoded stories: sildenafil's priapism became Viagra; "
+        "minoxidil's hypertrichosis became Rogaine. Below, every other drug "
+        "in the dataset that shares one of these precedent side effects -- "
+        "an untapped candidate for the same reframed purpose, by the same "
+        "logic."
     )
+    reframings = get_reframings()
+    candidates = reframing_candidates(matrix, reframings)
+    if candidates.empty:
+        st.info("No reframing candidates found in the current dataset.")
+    else:
+        st.dataframe(candidates, use_container_width=True, hide_index=True)
 
 
 def about_tab(matrix: pd.DataFrame) -> None:
@@ -519,6 +574,17 @@ def about_tab(matrix: pd.DataFrame) -> None:
         side-effect similarity" (*Science*, 2008) -- the paper this whole
         approach is built on, which used exactly this logic to predict and
         experimentally validate several previously-unknown drug targets.
+
+        **Reframed side effects.** A more literal reading of "bad side
+        effects, used positively": some side effects have real precedent
+        for becoming a drug's actual purpose (sildenafil's priapism became
+        Viagra; minoxidil's hypertrichosis became Rogaine; topiramate's and
+        bupropion's weight-loss side effect became Qsymia and Contrave).
+        OffTarget generalizes each precedent to every other drug that
+        shares that side effect, flagging it as an untapped candidate for
+        the same reframed purpose -- shown for the searched drug on the
+        Search tab, and across the whole dataset on the Off-Target
+        Hypotheses tab.
 
         **3D structures.** Each drug's structure is generated offline from a
         curated SMILES string with RDKit, validated against its expected
