@@ -72,12 +72,13 @@ OffTarget/
 ├── data_prep.py           # Parses raw data into a clean drug x side-effect matrix
 ├── similarity.py           # Jaccard/cosine similarity, top-N lookup
 ├── structures_prep.py     # Builds validated 3D conformers from SMILES
-├── targets.py             # Known-target lookup + off-target hypothesis scan
+├── targets.py             # Known-target lookup + off-target/reframing hypothesis scans
 ├── data/
 │   ├── raw/
-│   │   ├── demo_side_effects.csv   # curated demo dataset (default source)
-│   │   ├── drug_smiles.csv          # curated SMILES for 3D structures
-│   │   └── drug_targets.csv         # curated known primary target per drug
+│   │   ├── demo_side_effects.csv         # curated demo dataset (default source)
+│   │   ├── drug_smiles.csv                # curated SMILES for 3D structures
+│   │   ├── drug_targets.csv               # curated known primary target per drug
+│   │   └── side_effect_reframings.csv     # side effects with precedent as a drug's actual purpose
 │   ├── processed/
 │   │   ├── drug_side_effect_matrix.parquet
 │   │   └── drug_side_effect_matrix.csv
@@ -186,6 +187,21 @@ non-selective beta blocker) may be flagged "off-target" even though they're
 mechanistically close. These are computational leads, not findings — real
 off-target hypotheses need experimental validation before they mean
 anything clinically, same as in the original paper.
+
+### Reframed side effects
+
+A second, more literal reading of "bad side effects, used positively": some
+side effects have real precedent for becoming a drug's actual therapeutic
+purpose — sildenafil's priapism became Viagra; minoxidil's hypertrichosis
+became Rogaine. `data/raw/side_effect_reframings.csv` curates a handful of
+these precedents (including a third: topiramate's and bupropion's
+weight-loss side effect, deliberately turned into the weight-management
+drugs Qsymia and Contrave). `targets.py` then generalizes each one past its
+single pioneer drug — for any drug that shares that same side effect, it's
+flagged as an untapped candidate for the same reframed purpose. The
+**Search** tab surfaces this for whichever drug you're looking at; the
+**Off-Target Hypotheses** tab lists every candidate across the whole
+dataset.
 
 ## Validated case studies
 
