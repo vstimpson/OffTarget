@@ -72,6 +72,13 @@ score means "worth investigating," not "will work." That's the reason the
    shared target is flagged as an off-target hypothesis — the more
    interesting case, since it points at a possible mechanism nobody's
    documented yet. See **Off-target hypotheses** below.
+7. **Draw the actual pathway.** A target name alone can't distinguish
+   "different but related mechanism" from "no connection at all." Each
+   target is also placed on a modeled biological pathway, an ordered chain
+   of molecular steps rendered as a diagram, with the exact step each drug
+   intervenes on highlighted, so a shared-pathway match (same chain,
+   different step) can be told apart visually from a genuinely novel one.
+   See **Biological pathways** below.
 
 ## Project structure
 
@@ -82,6 +89,7 @@ OffTarget/
 ├── similarity.py           # Jaccard/cosine similarity, top-N lookup
 ├── structures_prep.py     # Builds validated 3D conformers from SMILES
 ├── targets.py             # Known-target lookup + off-target/reframing hypothesis scans
+├── pathways.py            # Curated biological pathway diagrams + pathway-level relationship logic
 ├── analysis.py            # Surprising pairs, repurposing score, PCA/t-SNE, clustering
 ├── data/
 │   ├── raw/
@@ -198,6 +206,48 @@ non-selective beta blocker) may be flagged "off-target" even though they're
 mechanistically close. These are computational leads, not findings — real
 off-target hypotheses need experimental validation before they mean
 anything clinically, same as in the original paper.
+
+### Biological pathways: beyond a flat target name
+
+A target name alone can only say two drugs are identical or unrelated —
+it can't say "these two act on different molecules that sit on the same
+underlying pathway." `pathways.py` models that middle case directly: each
+curated target family is placed on one of 26 hand-built pathways, an
+ordered chain of biological states (molecules, receptor activity,
+downstream effects) connected by the enzyme, receptor, or transporter that
+drives each step. Every drug's target is mapped to the exact step it acts
+on, not just the pathway's name.
+
+This adds a genuine third tier to the shared/off-target split above:
+
+- **Shared target** — same target family (e.g. two PDE5 inhibitors).
+- **Shared pathway, different target** — different targets that sit on the
+  same modeled pathway (an ACE inhibitor and an AT1 blocker, both in the
+  renin-angiotensin-aldosterone pathway; Sildenafil's PDE5 inhibition and
+  Minoxidil's potassium-channel opening, which converge on the same
+  vascular smooth muscle relaxation effect — the very Viagra/Rogaine
+  connection this app's case studies are named after).
+- **No known shared target or pathway** — the fully novel case, like
+  Amoxicillin and Azithromycin, which hit two genuinely distinct bacterial
+  machines (cell wall synthesis vs. the ribosome).
+
+Each pathway renders as a boxes-and-arrows diagram (`app.py`'s
+`render_pathway_diagram()`) with the relevant drug's intervention arrow
+highlighted and tagged by name, shown on the Search tab (a single drug's
+own pathway), and on the Off-Target Hypotheses, Surprising Pairs, and
+Validated Case Studies tabs (both drugs in a pair overlaid on the same
+diagram when they share one). The dataset-wide validation on the Validated
+Case Studies tab also checks this pathway-level view against
+similarity, and on the current dataset it correlates *more* strongly with
+side-effect similarity than exact target matches do (0.60 vs. 0.51 Pearson
+correlation with IDF-weighted Jaccard).
+
+**Caveat:** this is a hand-curated, simplified model built for this
+dataset's 35 target families, not a reference pathway database — several
+pathways compress real multi-step biology into a single arrow for
+readability, and the broad-spectrum anticonvulsants (topiramate,
+valproate) act on several targets simultaneously and are shown as one
+combined step rather than a misleading single mechanism.
 
 ### Reframed side effects
 
@@ -328,6 +378,13 @@ the browser. IDF weighting is on by default in the Search and Off-Target
 Hypotheses tabs, with an option to switch it off and see the naive
 baseline for comparison.
 
+The same tab runs one more comparison: does counting a *shared pathway*,
+not just an exact target match, track similarity even more closely? On the
+IDF-weighted pairs, yes — 0.60 correlation counting same-pathway pairs as
+a match, versus 0.51 for exact-target matches only. Both correlation
+figures and the same bin chart, now with a toggle between the two
+definitions of "shares biology," are computed live in the same section.
+
 ## Limitations
 
 - The demo dataset is illustrative, not exhaustive. Absence of a shared
@@ -343,6 +400,10 @@ baseline for comparison.
 - Known-target curation is a simplification (see the caveat above); an
   "off-target hypothesis" badge means *no known shared target in this
   dataset*, not an experimentally confirmed novel mechanism.
+- Pathway curation (`pathways.py`) is hand-built for this dataset's 35
+  target families, not sourced from a reference pathway database like
+  KEGG or Reactome; treat each diagram as an educational simplification of
+  real, often more branched and multi-step, biology.
 - IDF weights are computed from a 61-drug demo dataset, not the full ~1,400
   SIDER catalog, so `n_i` for any given side effect is a small, noisy count
   — a side effect that looks "rare" here might not be rare in reality. The

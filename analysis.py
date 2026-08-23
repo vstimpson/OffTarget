@@ -15,11 +15,16 @@ from sklearn.cluster import AgglomerativeClustering, KMeans
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
-from targets import target_relationship
+from pathways import pathway_relationship
 
 CATEGORIES_PATH = Path("data/raw/drug_categories.csv")
 
-BIOLOGICAL_PLAUSIBILITY = {"shared": 1.0, "off_target": 0.5, "unknown": 0.3}
+BIOLOGICAL_PLAUSIBILITY = {
+    "shared_target": 1.0,
+    "shared_pathway": 0.7,
+    "different_pathway": 0.5,
+    "unknown": 0.3,
+}
 INDICATION_DIFFERENCE = {True: 1.0, False: 0.2}
 
 
@@ -31,10 +36,12 @@ def repurposing_score(similarity: float, relationship: str, category_differs: bo
     """Exploratory composite score -- NOT a validated clinical metric.
 
     similarity: side-effect similarity (0-1).
-    relationship: "shared" / "off_target" / "unknown" target status, used
-      as a stand-in for "biological plausibility" -- a confirmed shared
-      target is the most plausible, an off-target hypothesis is plausible
-      but unconfirmed, unknown is the least assessable.
+    relationship: "shared_target" / "shared_pathway" / "different_pathway" /
+      "unknown", used as a stand-in for "biological plausibility" -- a
+      confirmed shared target is the most plausible, different targets on
+      the same modeled pathway are still fairly plausible, an off-target
+      hypothesis with no known pathway link is plausible but unconfirmed,
+      and unknown is the least assessable.
     category_differs: whether the two drugs' therapeutic categories differ
       -- a repurposing lead is more interesting the further apart the two
       drugs' current uses are.
@@ -77,7 +84,7 @@ def surprising_pairs(
             if cat_a == cat_b:
                 continue  # not "surprising" -- same category, similarity is expected
 
-            relationship = target_relationship(drug_a, drug_b, targets)
+            relationship = pathway_relationship(drug_a, drug_b, targets)
             score_f = float(score)
             rows.append(
                 {
@@ -86,7 +93,7 @@ def surprising_pairs(
                     "similarity": round(score_f, 4),
                     "category_a": cat_a,
                     "category_b": cat_b,
-                    "target_relationship": relationship,
+                    "pathway_relationship": relationship,
                     "target_a": targets.loc[drug_a, "primary_target"] if drug_a in targets.index else "unknown",
                     "target_b": targets.loc[drug_b, "primary_target"] if drug_b in targets.index else "unknown",
                     "repurposing_score": round(
@@ -97,7 +104,7 @@ def surprising_pairs(
 
     columns = [
         "drug_a", "drug_b", "similarity", "category_a", "category_b",
-        "target_relationship", "target_a", "target_b", "repurposing_score",
+        "pathway_relationship", "target_a", "target_b", "repurposing_score",
     ]
     if not rows:
         return pd.DataFrame(columns=columns)
