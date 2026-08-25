@@ -371,7 +371,7 @@ def render_structure_row(drugs: list[str], height: int = 220) -> None:
 
 def render_reframing_signals(drug: str, matrix: pd.DataFrame) -> None:
     """Flag side effects of `drug` with real precedent for becoming the
-    actual therapeutic purpose -- the Viagra/Rogaine pattern generalized.
+    actual therapeutic purpose; the Viagra/Rogaine pattern generalized.
     """
     reframings = get_reframings()
     signals = drug_reframing_signals(drug, matrix, reframings)
@@ -423,7 +423,7 @@ def search_tab(matrix: pd.DataFrame) -> None:
             help="Down-weight common side effects (headache, nausea) and "
                  "up-weight rare ones, the way TF-IDF weights words. "
                  "Measurably improves agreement with known drug targets "
-                 "(0.41 -> 0.51 correlation) -- see the Validated Case "
+                 "(0.41 -> 0.51 correlation), see the Validated Case "
                  "Studies tab.",
         )
 
@@ -468,7 +468,7 @@ def search_tab(matrix: pd.DataFrame) -> None:
     with st.expander("3D structures: query vs. top matches", expanded=False):
         st.caption(
             "Rotate and zoom each structure. Side-effect similarity is a "
-            "phenotypic signal, not a chemical one -- these compounds can "
+            "phenotypic signal, not a chemical one, thus these compounds can "
             "(and often do) look nothing alike structurally."
         )
         render_structure_row([drug] + list(results["drug_name"][:4]))
@@ -515,7 +515,7 @@ def case_studies_tab(matrix: pd.DataFrame) -> None:
                         target_note = (
                             f" Interestingly, they have **no known shared target** "
                             f"({targets.loc[case['drug'], 'target_family']} vs. "
-                            f"{targets.loc[relative, 'target_family']}) -- exactly the kind of "
+                            f"{targets.loc[relative, 'target_family']}), exactly the kind of "
                             f"off-target hypothesis this method is meant to surface."
                         )
                     else:
@@ -528,7 +528,7 @@ def case_studies_tab(matrix: pd.DataFrame) -> None:
             else:
                 st.warning(
                     f"None of {', '.join(case['known_relatives'])} appear in "
-                    f"{case['drug']}'s top 10 -- they may be missing from "
+                    f"{case['drug']}'s top 10, they may be missing from "
                     "the demo dataset."
                 )
 
@@ -545,7 +545,7 @@ def render_target_validation(matrix: pd.DataFrame) -> None:
         "The three case studies above are hand-picked. A more honest test: "
         "take *every* drug pair with a curated target, and check whether "
         "higher side-effect similarity actually corresponds to a higher "
-        "rate of sharing a known target -- not just for the drugs the "
+        "rate of sharing a known target, not just for the drugs the "
         "case studies were built around."
     )
 
