@@ -15,6 +15,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from pathways import pathway_relationship
+
 TARGETS_PATH = Path("data/raw/drug_targets.csv")
 REFRAMINGS_PATH = Path("data/raw/side_effect_reframings.csv")
 
@@ -114,10 +116,11 @@ def top_off_target_hypotheses(
                     "similarity": round(float(score), 4),
                     "target_a": targets.loc[drug_a, "primary_target"],
                     "target_b": targets.loc[drug_b, "primary_target"],
+                    "pathway_relationship": pathway_relationship(drug_a, drug_b, targets),
                 }
             )
 
-    columns = ["drug_a", "drug_b", "similarity", "target_a", "target_b"]
+    columns = ["drug_a", "drug_b", "similarity", "target_a", "target_b", "pathway_relationship"]
     if not rows:
         return pd.DataFrame(columns=columns)
     result = pd.DataFrame(rows, columns=columns)
@@ -142,25 +145,31 @@ def all_pairs_target_overlap(sims: pd.DataFrame, targets: pd.DataFrame) -> pd.Da
             if pair in seen:
                 continue
             seen.add(pair)
+            relationship = pathway_relationship(drug_a, drug_b, targets)
             rows.append(
                 {
                     "drug_a": drug_a,
                     "drug_b": drug_b,
                     "similarity": float(score),
-                    "shares_target": targets.loc[drug_a, "target_family"]
-                    == targets.loc[drug_b, "target_family"],
+                    "shares_target": relationship == "shared_target",
+                    "shares_pathway": relationship in ("shared_target", "shared_pathway"),
                     "target_a": targets.loc[drug_a, "primary_target"],
                     "target_b": targets.loc[drug_b, "primary_target"],
                 }
             )
-    columns = ["drug_a", "drug_b", "similarity", "shares_target", "target_a", "target_b"]
+    columns = [
+        "drug_a", "drug_b", "similarity", "shares_target", "shares_pathway",
+        "target_a", "target_b",
+    ]
     if not rows:
         return pd.DataFrame(columns=columns)
     return pd.DataFrame(rows, columns=columns)
 
 
-def target_overlap_correlation(pairs: pd.DataFrame) -> dict:
-    """Summary stats for the similarity-vs-shared-target relationship."""
+def target_overlap_correlation(pairs: pd.DataFrame, column: str = "shares_target") -> dict:
+    """Summary stats for the similarity-vs-shared-target (or -pathway)
+    relationship. Pass column="shares_pathway" for the pathway-level version.
+    """
     if pairs.empty:
         return {
             "n_pairs": 0,
@@ -169,7 +178,7 @@ def target_overlap_correlation(pairs: pd.DataFrame) -> dict:
             "mean_sim_shared": float("nan"),
             "mean_sim_not_shared": float("nan"),
         }
-    shared = pairs["shares_target"]
+    shared = pairs[column]
     return {
         "n_pairs": len(pairs),
         "n_shared": int(shared.sum()),
@@ -179,15 +188,18 @@ def target_overlap_correlation(pairs: pd.DataFrame) -> dict:
     }
 
 
-def target_overlap_by_similarity_bin(pairs: pd.DataFrame, bin_edges: list[float]) -> pd.DataFrame:
-    """Bin pairs by similarity and compute the share-a-target rate per bin --
-    the chart that answers "does higher similarity mean more shared targets?"
+def target_overlap_by_similarity_bin(
+    pairs: pd.DataFrame, bin_edges: list[float], column: str = "shares_target"
+) -> pd.DataFrame:
+    """Bin pairs by similarity and compute the share-a-target (or -pathway)
+    rate per bin -- the chart that answers "does higher similarity mean more
+    shared biology?" Pass column="shares_pathway" for the pathway-level version.
     """
     if pairs.empty:
-        return pd.DataFrame(columns=["bin_label", "pct_shared_target", "n_pairs"])
+        return pd.DataFrame(columns=["bin_label", "pct_shared", "n_pairs"])
     bins = pd.cut(pairs["similarity"], bins=bin_edges, include_lowest=True)
-    summary = pairs.groupby(bins, observed=True)["shares_target"].agg(["mean", "count"])
+    summary = pairs.groupby(bins, observed=True)[column].agg(["mean", "count"])
     summary = summary.reset_index()
-    summary.columns = ["bin", "pct_shared_target", "n_pairs"]
+    summary.columns = ["bin", "pct_shared", "n_pairs"]
     summary["bin_label"] = summary["bin"].apply(lambda b: f"{max(b.left, 0):.1f}-{b.right:.1f}")
-    return summary[["bin_label", "pct_shared_target", "n_pairs"]]
+    return summary[["bin_label", "pct_shared", "n_pairs"]]
