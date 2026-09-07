@@ -60,3 +60,9 @@ Vardenafil,Phosphodiesterase type 5 (PDE5),Phosphodiesterase type 5 (PDE5)
 Varenicline,Nicotinic acetylcholine receptor (alpha4beta2),Nicotinic acetylcholine receptor (alpha4beta2)
 Venlafaxine,Serotonin-norepinephrine reuptake transporter,Serotonin-norepinephrine reuptake transporter
 Warfarin,Vitamin K epoxide reductase (VKORC1),Vitamin K epoxide reductase (VKORC1)
+Cocaine,"Dopamine, norepinephrine, and serotonin reuptake transporters",Monoamine reuptake transporter (triple: DAT/NET/SERT)
+Methamphetamine,Dopamine/norepinephrine transporter (releasing agent),Dopamine-norepinephrine reuptake transporter
+Ketamine,NMDA receptor (glutamate-gated ion channel),NMDA receptor
+Spironolactone,Mineralocorticoid receptor (aldosterone antagonist),Mineralocorticoid receptor
+Ramipril,Angiotensin-converting enzyme (ACE),Angiotensin-converting enzyme (ACE)
+Estradiol,Estrogen receptor (agonist),Estrogen receptor (agonist)
