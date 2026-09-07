@@ -3,14 +3,14 @@
 **Drug repurposing candidate discovery via side-effect similarity.**
 
 OffTarget is a Streamlit app that compares drugs by their side-effect
-profiles, in the spirit of the [SIDER database](http://sideeffects.embl.de/)
+profiles, in the spirit of the [SIDER database](https://sideeffects.embl.de)
 (Side Effect Resource). The core idea: two drugs that cause a similar
 *pattern* of side effects often act on the same underlying biology, even
 when they're prescribed for completely unrelated diseases. That overlap can
 surface repurposing candidates that indication-based search would never
 suggest. This is how several real drugs were discovered.
 
-[Live app](https://github.com/vstimpson/OffTarget)
+[Live app](https://offtarget-a3ddofzwzafwzzwwx4h4sk.streamlit.app/)
 
 ## Why this matters
 
