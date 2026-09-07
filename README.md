@@ -10,7 +10,7 @@ when they're prescribed for completely unrelated diseases. That overlap can
 surface repurposing candidates that indication-based search would never
 suggest. This is how several real drugs were discovered.
 
-[Live app] https://vstimpson.github.io/OffTarget/
+[Live app] https://offtarget-a3ddofzwzafwzzwwx4h4sk.streamlit.app/
 
 ## Why this matters
 
