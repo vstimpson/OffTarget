@@ -1,7 +1,7 @@
 """OffTarget: drug repurposing candidate finder via side-effect similarity.
 
 Streamlit entrypoint. Compares drugs' side-effect "fingerprints" (SIDER-style
-binary vectors) to surface repurposing leads -- drugs used for unrelated
+binary vectors) to surface repurposing leads, drugs used for unrelated
 conditions that nonetheless share a side-effect signature, hinting at a
 shared underlying biological mechanism.
 """
@@ -23,6 +23,7 @@ from analysis import (
     surprising_pairs,
     tsne_projection,
 )
+from pathways import get_pathway, pathway_relationship, pathways_for_target_family, shared_pathway_names
 from similarity import explain_similarity, idf_weights, load_matrix, similarity_matrix, top_n_similar
 from targets import (
     all_pairs_target_overlap,
@@ -32,7 +33,6 @@ from targets import (
     reframing_candidates,
     target_overlap_by_similarity_bin,
     target_overlap_correlation,
-    target_relationship,
     top_off_target_hypotheses,
 )
 
@@ -95,6 +95,31 @@ CASE_STUDIES = [
             "approach picks up directly from the data."
         ),
     },
+    {
+        "drug": "Ketamine",
+        "brand": "Ketalar / Spravato",
+        "original_use": "General anesthetic (introduced in the 1960s)",
+        "repurposed_use": "Treatment-resistant depression (esketamine, Spravato)",
+        "known_relatives": [],
+        "story": (
+            "Ketamine has been used as a dissociative anesthetic since the "
+            "1960s, valued for knocking patients out without suppressing "
+            "breathing the way most anesthetics do. Decades later, "
+            "researchers noticed that a single low dose lifted mood within "
+            "hours in patients who hadn't responded to any other "
+            "antidepressant, a completely different timescale from SSRIs, "
+            "which take weeks. That observation led to esketamine "
+            "(Spravato), an FDA-approved treatment for depression that "
+            "doesn't respond to standard drugs. Unlike the other three "
+            "case studies, ketamine has no close mechanistic relative in "
+            "this dataset: it blocks the NMDA glutamate receptor, a "
+            "target no other drug here touches, so there's nothing for "
+            "the algorithm to recover. That's included deliberately, as a "
+            "reminder that not every repurposing story has a same-class "
+            "sibling to validate against; sometimes a drug really is "
+            "mechanistically alone in the data you have."
+        ),
+    },
 ]
 
 
@@ -149,8 +174,32 @@ def inject_css() -> None:
             font-weight: 600;
         }
         .sm-badge-shared { background: #DCFCE7; color: #166534; }
+        .sm-badge-shared-pathway { background: #DBEAFE; color: #1E3A8A; }
         .sm-badge-off-target { background: #FEF3C7; color: #92400E; }
         .sm-badge-unknown { background: #F1F5F9; color: #64748B; font-weight: 400; }
+        .sm-pathway-summary { color: #475569; font-size: 0.88rem; margin-bottom: 0.6rem; }
+        .sm-pathway-branch { margin-bottom: 0.9rem; }
+        .sm-pathway-branch-label {
+            font-weight: 600; color: #334155; font-size: 0.8rem; margin-bottom: 0.25rem;
+        }
+        .sm-pathway-row { display: flex; align-items: stretch; flex-wrap: wrap; gap: 0; }
+        .sm-pathway-node {
+            background: #F1F5F9; border: 1px solid #CBD5E1; border-radius: 10px;
+            padding: 0.5rem 0.75rem; font-size: 0.78rem; color: #1E293B;
+            max-width: 190px; display: flex; align-items: center; text-align: center;
+        }
+        .sm-pathway-edge {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; padding: 0.2rem 0.6rem; font-size: 0.7rem;
+            color: #64748B; max-width: 170px; text-align: center;
+        }
+        .sm-pathway-edge::before { content: "→"; font-size: 1.15rem; color: #94A3B8; }
+        .sm-pathway-edge-hit { color: #0F766E; font-weight: 600; }
+        .sm-pathway-edge-hit::before { color: #0D9488; }
+        .sm-pathway-drug-tag {
+            display: inline-block; margin-top: 0.2rem; background: #0D9488; color: white;
+            border-radius: 999px; padding: 0.05rem 0.5rem; font-size: 0.68rem; font-weight: 600;
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -202,15 +251,109 @@ def get_clusters(_matrix: pd.DataFrame, n_clusters: int, method: str) -> pd.Seri
     return cluster_drugs(_matrix, n_clusters=n_clusters, method=method)
 
 
-def target_badge_html(query: str, other: str, targets: pd.DataFrame) -> str:
-    relationship = target_relationship(query, other, targets)
-    if relationship == "shared":
+def pathway_badge_html(query: str, other: str, targets: pd.DataFrame) -> str:
+    relationship = pathway_relationship(query, other, targets)
+    if relationship == "shared_target":
         family = targets.loc[other, "target_family"]
         return f'<span class="sm-badge sm-badge-shared">Same target: {family}</span>'
-    if relationship == "off_target":
+    if relationship == "shared_pathway":
+        fam_a = targets.loc[query, "target_family"]
+        fam_b = targets.loc[other, "target_family"]
+        names = shared_pathway_names(fam_a, fam_b)
+        pathway_note = names[0] if names else "shared pathway"
+        return (
+            f'<span class="sm-badge sm-badge-shared-pathway">'
+            f"Different target, same pathway: {pathway_note}</span>"
+        )
+    if relationship == "different_pathway":
         target = targets.loc[other, "primary_target"]
         return f'<span class="sm-badge sm-badge-off-target">Off-target hypothesis: {target}</span>'
     return '<span class="sm-badge sm-badge-unknown">Target unknown</span>'
+
+
+def pathway_highlights_for_drugs(drug_targets: list[tuple[str, str]]) -> dict[str, dict[tuple[int, int], list[dict]]]:
+    """Build a {pathway_id: {(branch, edge): [{"drug", "verb"}, ...]}} map
+    from a list of (drug_name, target_family) pairs, so one or more drugs'
+    intervention points can be highlighted on the same diagram.
+    """
+    result: dict[str, dict[tuple[int, int], list[dict]]] = {}
+    for drug, family in drug_targets:
+        for iv in pathways_for_target_family(family):
+            key = (iv["branch"], iv["edge"])
+            result.setdefault(iv["pathway"], {}).setdefault(key, []).append(
+                {"drug": drug, "verb": iv["verb"]}
+            )
+    return result
+
+
+def render_pathway_diagram(pathway_id: str, highlights: dict[tuple[int, int], list[dict]] | None = None) -> None:
+    """Render one pathway as boxes (biological states) connected by arrows
+    (the enzyme/receptor/process that drives each step), with the specific
+    arrow(s) a drug acts on highlighted and tagged with its name.
+    """
+    pathway = get_pathway(pathway_id)
+    if pathway is None:
+        return
+    highlights = highlights or {}
+    st.markdown(f"**{pathway['name']}**")
+    st.markdown(f'<div class="sm-pathway-summary">{pathway["summary"]}</div>', unsafe_allow_html=True)
+
+    html_parts = []
+    for b_idx, branch in enumerate(pathway["branches"]):
+        row = []
+        if branch["label"]:
+            row.append(f'<div class="sm-pathway-branch-label">{branch["label"]}</div>')
+        nodes, edges = branch["nodes"], branch["edges"]
+        cells = [f'<div class="sm-pathway-node">{nodes[0]}</div>']
+        for e_idx, edge_label in enumerate(edges):
+            hits = highlights.get((b_idx, e_idx), [])
+            hit_class = " sm-pathway-edge-hit" if hits else ""
+            tags = "".join(
+                f'<span class="sm-pathway-drug-tag">{h["drug"]} {h["verb"]}</span>'
+                for h in hits
+            )
+            cells.append(f'<div class="sm-pathway-edge{hit_class}">{edge_label}{tags}</div>')
+            cells.append(f'<div class="sm-pathway-node">{nodes[e_idx + 1]}</div>')
+        row.append('<div class="sm-pathway-row">' + "".join(cells) + "</div>")
+        html_parts.append('<div class="sm-pathway-branch">' + "".join(row) + "</div>")
+    st.markdown("".join(html_parts), unsafe_allow_html=True)
+
+
+def render_drug_pathways(drug: str, targets: pd.DataFrame) -> None:
+    """Every pathway diagram for a single drug's curated target, with that
+    drug's own intervention point highlighted.
+    """
+    if drug not in targets.index:
+        st.caption("No curated target for this drug, so no pathway to show.")
+        return
+    family = targets.loc[drug, "target_family"]
+    interventions = pathways_for_target_family(family)
+    if not interventions:
+        st.caption("This target isn't mapped to a modeled pathway yet.")
+        return
+    highlights = pathway_highlights_for_drugs([(drug, family)])
+    for pathway_id in dict.fromkeys(iv["pathway"] for iv in interventions):
+        render_pathway_diagram(pathway_id, highlights.get(pathway_id))
+
+
+def render_pair_pathways(drug_a: str, drug_b: str, targets: pd.DataFrame) -> None:
+    """Every pathway diagram either drug in a pair acts on, both drugs'
+    intervention points highlighted together. When they land on the same
+    pathway, this is the whole point: different targets, same diagram.
+    """
+    drug_targets = []
+    for drug in (drug_a, drug_b):
+        if drug in targets.index:
+            drug_targets.append((drug, targets.loc[drug, "target_family"]))
+    if not drug_targets:
+        st.caption("Neither drug has a curated target, so no pathway to show.")
+        return
+    highlights = pathway_highlights_for_drugs(drug_targets)
+    if not highlights:
+        st.caption("Neither drug's target is mapped to a modeled pathway yet.")
+        return
+    for pathway_id, pathway_highlights in highlights.items():
+        render_pathway_diagram(pathway_id, pathway_highlights)
 
 
 def render_results_cards(
@@ -228,7 +371,7 @@ def render_results_cards(
             for se in row["shared_side_effects"].split(", ")
             if se
         )
-        badge = target_badge_html(query, other, targets)
+        badge = pathway_badge_html(query, other, targets)
         category_line = ""
         if categories is not None and other in categories.index:
             category_line = f'<div class="sm-caption">{categories.loc[other, "therapeutic_category"]}</div>'
@@ -371,7 +514,7 @@ def render_structure_row(drugs: list[str], height: int = 220) -> None:
 
 def render_reframing_signals(drug: str, matrix: pd.DataFrame) -> None:
     """Flag side effects of `drug` with real precedent for becoming the
-    actual therapeutic purpose; the Viagra/Rogaine pattern generalized.
+    actual therapeutic purpose, the Viagra/Rogaine pattern generalized.
     """
     reframings = get_reframings()
     signals = drug_reframing_signals(drug, matrix, reframings)
@@ -397,7 +540,7 @@ def search_tab(matrix: pd.DataFrame) -> None:
     st.subheader("Find repurposing candidates by side-effect similarity")
     st.write(
         "Pick a drug and OffTarget will rank every other drug in the "
-        "dataset by how similar its side-effect profile is -- regardless "
+        "dataset by how similar its side-effect profile is, regardless "
         "of what disease either drug is actually used for."
     )
 
@@ -423,7 +566,7 @@ def search_tab(matrix: pd.DataFrame) -> None:
             help="Down-weight common side effects (headache, nausea) and "
                  "up-weight rare ones, the way TF-IDF weights words. "
                  "Measurably improves agreement with known drug targets "
-                 "(0.41 -> 0.51 correlation), see the Validated Case "
+                 "(0.43 -> 0.52 correlation); see the Validated Case "
                  "Studies tab.",
         )
 
@@ -441,6 +584,13 @@ def search_tab(matrix: pd.DataFrame) -> None:
         f"&nbsp;·&nbsp; {n_effects} documented side effects"
     )
 
+    with st.expander(f"Biological pathway: where does {drug} actually intervene?"):
+        st.caption(
+            "Not just a target name: the sequence of molecular steps "
+            "involved, with the exact step this drug acts on highlighted."
+        )
+        render_drug_pathways(drug, targets)
+
     render_reframing_signals(drug, matrix)
 
     results = top_n_similar(drug, matrix, n=n, metric=metric, weighted=weighted)
@@ -454,7 +604,7 @@ def search_tab(matrix: pd.DataFrame) -> None:
         st.markdown(f"#### Top {len(results)} matches for {drug}{weight_note}")
         st.caption(
             "Green = already known to share a target with {}. Amber = an "
-            "off-target hypothesis -- high side-effect similarity with no "
+            "off-target hypothesis, high side-effect similarity with no "
             "known shared target, worth investigating.".format(drug)
         )
         render_results_cards(results, drug, targets, matrix=matrix, categories=categories, weighted=weighted)
@@ -468,7 +618,7 @@ def search_tab(matrix: pd.DataFrame) -> None:
     with st.expander("3D structures: query vs. top matches", expanded=False):
         st.caption(
             "Rotate and zoom each structure. Side-effect similarity is a "
-            "phenotypic signal, not a chemical one, thus these compounds can "
+            "phenotypic signal, not a chemical one; these compounds can "
             "(and often do) look nothing alike structurally."
         )
         render_structure_row([drug] + list(results["drug_name"][:4]))
@@ -504,16 +654,29 @@ def case_studies_tab(matrix: pd.DataFrame) -> None:
                 for relative in hits:
                     rank = ranked.index(relative) + 1
                     score = results.loc[results["drug_name"] == relative, "similarity"].iloc[0]
-                    relationship = target_relationship(case["drug"], relative, targets)
-                    if relationship == "shared":
+                    relationship = pathway_relationship(case["drug"], relative, targets)
+                    if relationship == "shared_target":
                         target_note = (
                             f" They share a known target "
                             f"({targets.loc[relative, 'target_family']}), confirming the method "
                             f"picked up real biology here."
                         )
-                    elif relationship == "off_target":
+                    elif relationship == "shared_pathway":
+                        names = shared_pathway_names(
+                            targets.loc[case["drug"], "target_family"],
+                            targets.loc[relative, "target_family"],
+                        )
+                        pathway_note = names[0] if names else "a shared pathway"
                         target_note = (
-                            f" Interestingly, they have **no known shared target** "
+                            f" They act on **different targets** "
+                            f"({targets.loc[case['drug'], 'target_family']} vs. "
+                            f"{targets.loc[relative, 'target_family']}) that sit on the **same "
+                            f"pathway** ({pathway_note}), exactly why they cause similar side "
+                            f"effects despite the different molecule they lock onto."
+                        )
+                    elif relationship == "different_pathway":
+                        target_note = (
+                            f" Interestingly, they have **no known shared target or pathway** "
                             f"({targets.loc[case['drug'], 'target_family']} vs. "
                             f"{targets.loc[relative, 'target_family']}), exactly the kind of "
                             f"off-target hypothesis this method is meant to surface."
@@ -524,13 +687,23 @@ def case_studies_tab(matrix: pd.DataFrame) -> None:
                         f"Recovered: **{relative}** ranked #{rank} "
                         f"with {score:.1%} Jaccard similarity.{target_note}"
                     )
-                render_structure_row([case["drug"]] + hits)
-            else:
+                with st.expander(f"Biological pathway: {case['drug']} vs. its recovered relatives"):
+                    for relative in hits:
+                        render_pair_pathways(case["drug"], relative, targets)
+            elif case["known_relatives"]:
                 st.warning(
                     f"None of {', '.join(case['known_relatives'])} appear in "
-                    f"{case['drug']}'s top 10, they may be missing from "
+                    f"{case['drug']}'s top 10; they may be missing from "
                     "the demo dataset."
                 )
+            else:
+                st.info(
+                    f"{case['drug']} has no curated mechanistic relative in "
+                    "this dataset, so there's nothing to recover. Its top "
+                    "matches below are driven by incidental side-effect "
+                    "overlap rather than a shared target or pathway."
+                )
+            render_structure_row([case["drug"]] + hits)
 
             with st.expander(f"Full top-10 similarity ranking for {case['drug']}"):
                 st.dataframe(results, use_container_width=True, hide_index=True)
@@ -576,32 +749,55 @@ def render_target_validation(matrix: pd.DataFrame) -> None:
         delta=f"{stats_weighted['correlation'] - stats_unweighted['correlation']:+.3f}",
     )
 
+    st.markdown("###### Does looking at pathways, not just exact targets, help further?")
+    st.write(
+        "Two drugs can act on different proteins that still sit on the same "
+        "biological pathway (an ACE inhibitor and an AT1 blocker, both in "
+        "the blood-pressure pathway). That should be a *real* biological "
+        "connection even though it's invisible to a same-target-only check. "
+        "Same IDF-weighted pairs, only the definition of \"shares biology\" "
+        "changes: exact target match, or same modeled pathway:"
+    )
+    stats_target = target_overlap_correlation(pairs_weighted, column="shares_target")
+    stats_pathway = target_overlap_correlation(pairs_weighted, column="shares_pathway")
+    pc1, pc2 = st.columns(2)
+    pc1.metric("Exact-target correlation", f"{stats_target['correlation']:.3f}")
+    pc2.metric(
+        "Same-pathway correlation", f"{stats_pathway['correlation']:.3f}",
+        delta=f"{stats_pathway['correlation'] - stats_target['correlation']:+.3f}",
+    )
+
     weighted_view = st.toggle("Show IDF-weighted results below", value=True)
+    pathway_view = st.toggle(
+        "Count same-pathway pairs as a match, not just exact target matches", value=True,
+    )
     pairs = pairs_weighted if weighted_view else pairs_unweighted
-    stats = stats_weighted if weighted_view else stats_unweighted
+    column = "shares_pathway" if pathway_view else "shares_target"
+    stats = target_overlap_correlation(pairs, column=column)
+    scope_label = "shared pathway" if pathway_view else "shared target"
 
     c1, c2, c3 = st.columns(3)
     c1.metric("Pairs analyzed", f"{stats['n_pairs']:,}")
-    c2.metric("Correlation (similarity vs. shared target)", f"{stats['correlation']:.2f}")
+    c2.metric(f"Correlation (similarity vs. {scope_label})", f"{stats['correlation']:.2f}")
     c3.metric(
         "Mean similarity, shared vs. not",
         f"{stats['mean_sim_shared']:.1%} vs. {stats['mean_sim_not_shared']:.1%}",
     )
 
-    bins = target_overlap_by_similarity_bin(pairs, [0, 0.1, 0.2, 0.3, 0.5, 1.0])
+    bins = target_overlap_by_similarity_bin(pairs, [0, 0.1, 0.2, 0.3, 0.5, 1.0], column=column)
     fig = go.Figure(
         go.Bar(
             x=bins["bin_label"],
-            y=bins["pct_shared_target"] * 100,
-            marker=dict(color=bins["pct_shared_target"], colorscale=CLINICAL_SCALE),
+            y=bins["pct_shared"] * 100,
+            marker=dict(color=bins["pct_shared"], colorscale=CLINICAL_SCALE),
             text=[f"n={n}" for n in bins["n_pairs"]],
             textposition="outside",
         )
     )
     fig.update_layout(
-        title="Share of drug pairs with a known shared target, by similarity range",
+        title=f"Share of drug pairs with a {scope_label}, by similarity range",
         xaxis_title="Jaccard similarity range",
-        yaxis_title="% sharing a known target",
+        yaxis_title=f"% sharing a {scope_label}",
         plot_bgcolor="white",
         paper_bgcolor="white",
         margin=dict(l=10, r=10, t=40, b=10),
@@ -611,12 +807,12 @@ def render_target_validation(matrix: pd.DataFrame) -> None:
 
     st.caption(
         f"A correlation of {stats['correlation']:.2f} across {stats['n_pairs']:,} pairs, "
-        "and a shared-target rate that climbs with similarity, is the general-case "
+        f"and a {scope_label} rate that climbs with similarity, is the general-case "
         "version of what the case studies show individually: this isn't just "
         "picking three examples that happen to work. It's also not proof the "
         "method is reliable for any single pair, most high-similarity pairs "
-        "*still* don't share a known target, which is exactly the off-target "
-        "hypothesis space the previous tab explores."
+        f"*still* don't share a known target or pathway, which is exactly the "
+        "off-target hypothesis space the previous tab explores."
     )
 
 
@@ -630,8 +826,13 @@ def off_target_tab(matrix: pd.DataFrame) -> None:
         "two drugs might work through a related mechanism that hasn't "
         "been pinned down. This idea comes from a real study (Campillos et "
         "al., *Science*, 2008), which used exactly this logic to predict "
-        "molecular targets nobody had linked to a given drug before. Two "
-        "views of it live on this tab: which drug *pairs* look related "
+        "molecular targets nobody had linked to a given drug before. Each "
+        "pair below is also checked against a curated map of biological "
+        "pathways: two drugs with unrelated targets that still sit on the "
+        "same pathway (like an ACE inhibitor and an AT1 blocker, both in "
+        "the same blood-pressure pathway) are a less surprising, more "
+        "explainable case than two drugs with no known connection at all. "
+        "Two views of it live on this tab: which drug *pairs* look related "
         "with no confirmed reason yet, and further down, which specific "
         "*side effects* have real precedent for becoming a drug's actual "
         "purpose."
@@ -652,19 +853,33 @@ def off_target_tab(matrix: pd.DataFrame) -> None:
     hypotheses = top_off_target_hypotheses(sims, targets, min_similarity=min_sim, n=15)
 
     if hypotheses.empty:
-        st.info("No off-target hypotheses at this similarity threshold -- try lowering it.")
+        st.info("No off-target hypotheses at this similarity threshold; try lowering it.")
     else:
         st.markdown(f"#### Top {len(hypotheses)} off-target hypotheses in this dataset")
+        pathway_badge = {
+            "shared_pathway": (
+                "sm-badge-shared-pathway",
+                "Different target, same pathway (less surprising)",
+            ),
+            "different_pathway": ("sm-badge-off-target", "No known shared pathway either"),
+            "unknown": ("sm-badge-unknown", "Pathway unmapped"),
+        }
         for _, row in hypotheses.iterrows():
             with st.container(border=True):
+                badge_class, badge_text = pathway_badge.get(
+                    row["pathway_relationship"], ("sm-badge-unknown", "Pathway unmapped")
+                )
                 st.markdown(
                     f"**{row['drug_a']}** ↔ **{row['drug_b']}** "
-                    f"<span class='sm-score'>{row['similarity']:.1%} similarity</span>",
+                    f"<span class='sm-score'>{row['similarity']:.1%} similarity</span> "
+                    f"<span class='sm-badge {badge_class}'>{badge_text}</span>",
                     unsafe_allow_html=True,
                 )
                 st.caption(
                     f"{row['drug_a']}: {row['target_a']}  \n{row['drug_b']}: {row['target_b']}"
                 )
+                with st.expander("Biological pathway comparison"):
+                    render_pair_pathways(row["drug_a"], row["drug_b"], targets)
                 with st.expander("3D structures and properties"):
                     render_structure_row([row["drug_a"], row["drug_b"]])
 
@@ -739,20 +954,25 @@ def surprising_pairs_tab(matrix: pd.DataFrame) -> None:
     pairs = surprising_pairs(sims, categories, targets, min_similarity=min_sim, n=20, sort_by=sort_by)
 
     if pairs.empty:
-        st.info("No cross-category pairs at this similarity threshold -- try lowering it.")
+        st.info("No cross-category pairs at this similarity threshold; try lowering it.")
         return
 
     st.markdown(f"#### Top {len(pairs)} surprising pairs")
     for _, row in pairs.iterrows():
         with st.container(border=True):
+            pathway_rel = row["pathway_relationship"]
             badge_class = {
-                "shared": "sm-badge-shared", "off_target": "sm-badge-off-target",
+                "shared_target": "sm-badge-shared",
+                "shared_pathway": "sm-badge-shared-pathway",
+                "different_pathway": "sm-badge-off-target",
                 "unknown": "sm-badge-unknown",
-            }[row["target_relationship"]]
+            }[pathway_rel]
             badge_text = {
-                "shared": "Known shared target", "off_target": "No known shared target",
+                "shared_target": "Known shared target",
+                "shared_pathway": "Different target, same pathway",
+                "different_pathway": "No known shared target or pathway",
                 "unknown": "Target unknown",
-            }[row["target_relationship"]]
+            }[pathway_rel]
             st.markdown(
                 f"**{row['drug_a']}** ({row['category_a']}) ↔ "
                 f"**{row['drug_b']}** ({row['category_b']})  \n"
@@ -771,6 +991,8 @@ def surprising_pairs_tab(matrix: pd.DataFrame) -> None:
                 )
                 st.caption(f"Strongest contributing shared side effects: {terms}")
 
+            with st.expander("Biological pathway comparison"):
+                render_pair_pathways(row["drug_a"], row["drug_b"], targets)
             with st.expander("3D structures and properties"):
                 render_structure_row([row["drug_a"], row["drug_b"]])
 
@@ -786,21 +1008,23 @@ def surprising_pairs_tab(matrix: pd.DataFrame) -> None:
     st.write(
         "An **exploratory** ranking, not a validated clinical metric. "
         "Biological plausibility is a stand-in built from curated target "
-        "data: 1.0 if the pair already shares a known target, 0.5 if "
-        "there's no known shared target (plausible, unconfirmed), 0.3 if "
-        "either drug's target isn't curated at all. Indication difference "
-        "is 1.0 for a genuine cross-category pair (all pairs on this page) "
-        "and would be 0.2 for same-category pairs, which this page filters "
-        "out entirely since they're not surprising. The formula is "
-        "deliberately simple -- it exists to rank leads for further "
-        "investigation, not to make a scientific claim about any one pair."
+        "and pathway data: 1.0 if the pair already shares a known target, "
+        "0.7 if their targets differ but sit on the same modeled biological "
+        "pathway, 0.5 if there's no known shared target or pathway "
+        "(plausible, unconfirmed), 0.3 if either drug's target isn't "
+        "curated at all. Indication difference is 1.0 for a genuine "
+        "cross-category pair (all pairs on this page) and would be 0.2 for "
+        "same-category pairs, which this page filters out entirely since "
+        "they're not surprising. The formula is deliberately simple; it "
+        "exists to rank leads for further investigation, not to make a "
+        "scientific claim about any one pair."
     )
 
 
 def cluster_map_tab(matrix: pd.DataFrame) -> None:
     st.subheader("Cluster map")
     st.write(
-        "Every drug here is really just a checklist of up to 96 possible "
+        "Every drug here is really just a checklist of up to 100 possible "
         "side effects (see the glossary in the sidebar if any term on this "
         "page is unfamiliar). This tab draws those checklists as a picture "
         "you can look at, and checks whether drugs that end up looking "
@@ -812,8 +1036,8 @@ def cluster_map_tab(matrix: pd.DataFrame) -> None:
         st.markdown(
             """
 **PCA (Principal Component Analysis)** is a linear projection. It finds
-the two directions through the 96-item side-effect checklist that
-capture the most spread (variance) across all 61 drugs, and plots each
+the two directions through the 100-item side-effect checklist that
+capture the most spread (variance) across all 67 drugs, and plots each
 drug's position along those two directions. Because it's linear and
 deterministic, the same drug always lands in the same place, and the axes
 have a real, if abstract, meaning: "direction of most variation," "second
@@ -873,9 +1097,9 @@ it as definitive.
             )
         )
     if method == "PCA":
-        axis_title = "Principal component {} (arbitrary units -- only relative distance matters)"
+        axis_title = "Principal component {} (arbitrary units; only relative distance matters)"
     else:
-        axis_title = "t-SNE dimension {} (no fixed meaning -- only nearby points are comparable)"
+        axis_title = "t-SNE dimension {} (no fixed meaning; only nearby points are comparable)"
     fig.update_layout(
         title=f"{method} projection of side-effect fingerprints",
         xaxis_title=axis_title.format(1),
@@ -888,7 +1112,7 @@ it as definitive.
     )
     st.plotly_chart(fig, use_container_width=True)
     st.caption(
-        "Each point is one drug, positioned using its full 96-item "
+        "Each point is one drug, positioned using its full 100-item "
         "side-effect checklist. Neither axis corresponds to a specific "
         "side effect or has physical units. PCA axes are directions of "
         "greatest variance across all checklists combined; t-SNE axes "
@@ -939,7 +1163,7 @@ it as definitive.
         "Purity of 1.0 means every drug in that cluster shares the same "
         "therapeutic category. Purity well below 1.0 for most clusters is "
         "expected and informative, not a failure: it's the same story as "
-        "the off-target hypotheses tab -- drugs from different classes "
+        "the off-target hypotheses tab; drugs from different classes "
         "landing in the same side-effect cluster are exactly the surprising "
         "pairs worth a closer look, not noise to explain away."
     )
@@ -956,7 +1180,7 @@ def about_tab(matrix: pd.DataFrame) -> None:
         search would never suggest.
 
         **Why this matters.** Repurposing an already-approved drug skips
-        most of the cost of drug development -- its safety profile, dosing,
+        most of the cost of drug development; its safety profile, dosing,
         and manufacturing are already established, so a new indication can
         go almost straight to efficacy trials. Traditional repurposing
         search starts from a known mechanism or indication, which means it
@@ -964,7 +1188,7 @@ def about_tab(matrix: pd.DataFrame) -> None:
         needs no prior knowledge of mechanism: it surfaces Tadalafil and
         Vardenafil as Sildenafil's relatives purely from overlapping side
         effects, without ever being told "these are all PDE5 inhibitors."
-        The tradeoff is that it's a hypothesis generator, not a validator --
+        The tradeoff is that it's a hypothesis generator, not a validator;
         a high score means "worth investigating," not "will work," which is
         why the Validated Case Studies tab exists: to confirm the method
         recovers *known* good leads before trusting it on unknown ones.
@@ -976,7 +1200,7 @@ def about_tab(matrix: pd.DataFrame) -> None:
         encodes drug/adverse-effect relationships from public drug labels.
 
         **Similarity metrics.**
-        - *Jaccard index*: `|A ∩ B| / |A ∪ B|` -- the fraction of all side
+        - *Jaccard index*: `|A ∩ B| / |A ∪ B|`, the fraction of all side
           effects (across both drugs) that they share. Penalizes drugs with
           very different total side-effect counts.
         - *Cosine similarity*: the cosine of the angle between the two
@@ -987,14 +1211,14 @@ def about_tab(matrix: pd.DataFrame) -> None:
         effect like angioedema appears in almost none. Counting every side
         effect equally treats them as equally informative, which they
         aren't. OffTarget can weight each side effect by
-        `w = log(N / n)` (N = total drugs, n = drugs with that side effect)
-        -- the same idea as IDF in TF-IDF, applied to a presence matrix
+        `w = log(N / n)` (N = total drugs, n = drugs with that side effect),
+        the same idea as IDF in TF-IDF, applied to a presence matrix
         instead of word counts. A side effect present in every drug gets
         weight 0; a side effect present in one drug out of sixty gets the
         highest weight. This isn't just a plausible tweak: on this dataset
         it measurably improves agreement with known drug targets (Jaccard
-        correlation with shared-target status rises from 0.41 unweighted to
-        0.51 weighted -- see the Validated Case Studies tab for the live
+        correlation with shared-target status rises from 0.43 unweighted to
+        0.52 weighted; see the Validated Case Studies tab for the live
         comparison). Toggle it on the Search and Off-Target Hypotheses tabs.
         """
     )
@@ -1015,12 +1239,12 @@ def about_tab(matrix: pd.DataFrame) -> None:
     st.markdown(
         """
         **Data source.** This deployment ships with a curated, hand-built
-        demo dataset (61 drugs, 96 MedDRA-style side-effect terms) covering
+        demo dataset (67 drugs, 100 MedDRA-style side-effect terms) covering
         diverse drug classes and every case study on the previous tab,
         because this environment can't reach sideeffects.embl.de directly to
         download the full SIDER database. `data_prep.py` will automatically
         use the real SIDER TSVs instead if you download `meddra_all_se.tsv.gz`
-        and `drug_names.tsv` from SIDER and place them in `data/raw/` --
+        and `drug_names.tsv` from SIDER and place them in `data/raw/`;
         no code changes required.
 
         **Off-target hypotheses.** Alongside each search result and in its
@@ -1029,13 +1253,35 @@ def about_tab(matrix: pd.DataFrame) -> None:
         or has no known shared target despite high side-effect similarity
         (an off-target hypothesis worth investigating). This framing
         follows Campillos et al., "Drug target identification using
-        side-effect similarity" (*Science*, 2008) -- the paper this whole
+        side-effect similarity" (*Science*, 2008), the paper this whole
         approach is built on, which used exactly this logic to predict and
         experimentally validate several previously-unknown drug targets.
         The **Validated Case Studies** tab also runs this check across the
         *whole* dataset, not just three examples: does higher side-effect
         similarity actually correspond to a higher rate of sharing a known
-        target? (Short answer: yes -- see that tab for the numbers.)
+        target? (Short answer: yes; see that tab for the numbers.)
+
+        **Biological pathways.** A target name alone (`data/raw/drug_targets.csv`)
+        can only say two drugs are identical or unrelated. `pathways.py`
+        goes one level deeper: each curated target family is placed on a
+        modeled pathway, an ordered chain of molecular states connected by
+        the enzyme, receptor, or transporter that converts one into the
+        next, built by hand for this dataset's 35 target families and
+        rendered as a boxes-and-arrows diagram with each drug's exact
+        intervention point highlighted. This adds a real middle tier
+        between "same target" and "no known connection": two drugs can act
+        on different proteins that still sit on the same pathway (an ACE
+        inhibitor and an AT1 blocker in the blood-pressure pathway; a PDE5
+        inhibitor and a potassium-channel opener that both end in vascular
+        smooth muscle relaxation). On this dataset, that pathway-level view
+        correlates with side-effect similarity even more strongly than
+        exact target matches do, see the pathway comparison in the
+        Validated Case Studies tab. It's still a simplified, hand-curated
+        model, not a reference database: several pathways compress multiple
+        real intermediate steps into one arrow for readability, and a
+        handful of drugs (the broad-spectrum anticonvulsants) act on
+        several targets at once and are shown as a single combined step
+        rather than a false single mechanism.
 
         **Reframed side effects.** A more literal reading of "bad side
         effects, used positively": some side effects have real precedent
@@ -1044,7 +1290,7 @@ def about_tab(matrix: pd.DataFrame) -> None:
         bupropion's weight-loss side effect became Qsymia and Contrave).
         OffTarget generalizes each precedent to every other drug that
         shares that side effect, flagging it as an untapped candidate for
-        the same reframed purpose -- shown for the searched drug on the
+        the same reframed purpose, shown for the searched drug on the
         Search tab, and across the whole dataset on the Off-Target
         Hypotheses tab.
 
@@ -1053,33 +1299,33 @@ def about_tab(matrix: pd.DataFrame) -> None:
         idea as a dataset-wide scan: every drug pair above a similarity
         threshold that belongs to *different curated therapeutic
         categories* (`data/raw/drug_categories.csv`), with an explanation
-        layer showing exactly which shared side effects drive each score --
+        layer showing exactly which shared side effects drive each score,
         not just "0.82 similar," but "12 shared side effects, led by
         neuropathy and dry mouth." Each pair also gets an exploratory
         **repurposing score** (similarity x biological plausibility x
         indication difference) for ranking leads; see that tab for the
         formula and its explicit caveats.
 
-        **Cluster map.** A PCA or t-SNE projection turns each drug's 96-item
+        **Cluster map.** A PCA or t-SNE projection turns each drug's 100-item
         side-effect checklist into a single dot on a 2D picture, colored by
-        therapeutic category or target family -- if same-class drugs cluster
+        therapeutic category or target family; if same-class drugs cluster
         together visually, that's evidence the checklists encode real
         pharmacology. The same tab runs K-means or hierarchical clustering
         on the checklists alone (categories are never given to the
         algorithm) and measures cluster purity against the real drug
-        classes -- a quantitative, not just visual, version of the same
+        classes, a quantitative, not just visual, version of the same
         question.
 
         **3D structures.** Each drug's structure is generated offline from a
         curated SMILES string with RDKit, validated against its expected
         molecular formula, and rendered with a locally vendored copy of
-        3Dmol.js -- no CDN or live structure-database lookup involved.
+        3Dmol.js; no CDN or live structure-database lookup involved.
         Molecular weight, LogP, H-bond donor/acceptor counts, TPSA,
         rotatable bond count, and ring count are computed the same way and
         shown alongside each structure. See the README for the full
         pipeline and its accuracy caveats.
 
-        **Limitations.** The demo dataset is illustrative, not exhaustive --
+        **Limitations.** The demo dataset is illustrative, not exhaustive;
         absence of a shared side effect here means it wasn't included in
         this curated list, not that it doesn't exist. Side-effect
         co-occurrence is also a weak proxy for shared mechanism: it can
@@ -1105,14 +1351,14 @@ def main() -> None:
         st.markdown("### About OffTarget")
         st.write(
             "Search a drug to find others with the most similar reported "
-            "side-effect profile -- potential repurposing leads driven by "
+            "side-effect profile, potential repurposing leads driven by "
             "shared biology, not shared indication."
         )
         with st.expander("New here? Plain-language glossary"):
             st.markdown(
                 """
 **Side-effect checklist (the "fingerprint").** Picture a list of every
-side effect in the dataset, 96 of them. Each drug gets a checkmark next
+side effect in the dataset, 100 of them. Each drug gets a checkmark next
 to every side effect it's known to cause, and an empty box for every one
 it doesn't. That checklist is all this app actually knows about a drug.
 
@@ -1126,9 +1372,18 @@ onto, like a lock and key: a receptor, an enzyme, a channel. Two drugs
 can look completely different chemically and still act on the same
 target.
 
+**Biological pathway.** The chain of steps a target sits inside: molecule
+A gets turned into molecule B by protein X, which gets turned into
+molecule C by protein Y, and so on, ending in some effect on the body.
+Two drugs can lock onto two different proteins and still be acting on the
+same chain, just at different points, like an ACE inhibitor and an AT1
+blocker both interrupting the same blood-pressure pathway. OffTarget
+draws these chains out as boxes and arrows so you can see exactly where
+each drug steps in.
+
 **Off-target hypothesis.** Two drugs whose checklists overlap a lot, but
-where nobody has confirmed they share a target. Worth investigating, not
-a proven finding.
+where nobody has confirmed they share a target or pathway. Worth
+investigating, not a proven finding.
 
 **The map (PCA / t-SNE).** Two different ways of drawing all the drugs'
 checklists as dots on a single page, positioned so similar checklists
@@ -1143,9 +1398,6 @@ real, known drug classes.
 similarity score with how plausible a shared mechanism is and how
 different the two drugs' current uses are, meant for prioritizing leads,
 not as a scientific verdict.
-
-**IDF weighting.** IDF (Inverse Document Frequency) weighting is a statistical measure 
-that assigns lower scores to common words and higher scores to rare words across a collection of documents.
                 """
             )
         st.markdown("---")

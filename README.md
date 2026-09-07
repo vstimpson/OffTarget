@@ -3,14 +3,14 @@
 **Drug repurposing candidate discovery via side-effect similarity.**
 
 OffTarget is a Streamlit app that compares drugs by their side-effect
-profiles, in the spirit of the [SIDER database] (https://sideeffects.embl.de)
+profiles, in the spirit of the [SIDER database](https://sideeffects.embl.de)
 (Side Effect Resource). The core idea: two drugs that cause a similar
 *pattern* of side effects often act on the same underlying biology, even
 when they're prescribed for completely unrelated diseases. That overlap can
 surface repurposing candidates that indication-based search would never
 suggest. This is how several real drugs were discovered.
 
-[Live app] https://offtarget-a3ddofzwzafwzzwwx4h4sk.streamlit.app/
+[Live app](https://offtarget-a3ddofzwzafwzzwwx4h4sk.streamlit.app/)
 
 ## Why this matters
 
@@ -38,10 +38,10 @@ score means "worth investigating," not "will work." That's the reason the
    over a shared vocabulary of side-effect terms. `1` if the drug is
    documented to cause that effect, `0` otherwise.
 2. **Compare fingerprints.** Similarity between two drugs is computed with:
-   - **Jaccard index** — `|A ∩ B| / |A ∪ B|`, the fraction of the *combined*
+   - **Jaccard index**, `|A ∩ B| / |A ∪ B|`, the fraction of the *combined*
      side-effect set the two drugs share. Penalizes drugs with very
      different total side-effect counts.
-   - **Cosine similarity** — the cosine of the angle between the two binary
+   - **Cosine similarity**, the cosine of the angle between the two binary
      vectors. Slightly more forgiving toward drugs with many reported
      effects.
 
@@ -50,7 +50,7 @@ score means "worth investigating," not "will work." That's the reason the
    same idea as IDF in TF-IDF applied to a presence matrix instead of word
    counts. Headache and nausea, present in most drugs, end up near weight
    0; a side effect present in one drug out of sixty gets the highest
-   weight. See **Does IDF weighting help?** below — it isn't just a
+   weight. See **Does IDF weighting help?** below; it isn't just a
    plausible tweak, it measurably improves agreement with known drug
    targets.
 3. **Rank.** Given a query drug, every other drug is ranked by similarity
@@ -69,9 +69,16 @@ score means "worth investigating," not "will work." That's the reason the
 6. **Flag off-target hypotheses.** Every match is checked against a curated
    table of known drug targets. A match that already shares a known target
    confirms the method is working; a high-similarity match with *no* known
-   shared target is flagged as an off-target hypothesis — the more
+   shared target is flagged as an off-target hypothesis, the more
    interesting case, since it points at a possible mechanism nobody's
    documented yet. See **Off-target hypotheses** below.
+7. **Draw the actual pathway.** A target name alone can't distinguish
+   "different but related mechanism" from "no connection at all." Each
+   target is also placed on a modeled biological pathway, an ordered chain
+   of molecular steps rendered as a diagram, with the exact step each drug
+   intervenes on highlighted, so a shared-pathway match (same chain,
+   different step) can be told apart visually from a genuinely novel one.
+   See **Biological pathways** below.
 
 ## Project structure
 
@@ -82,6 +89,7 @@ OffTarget/
 ├── similarity.py           # Jaccard/cosine similarity, top-N lookup
 ├── structures_prep.py     # Builds validated 3D conformers from SMILES
 ├── targets.py             # Known-target lookup + off-target/reframing hypothesis scans
+├── pathways.py            # Curated biological pathway diagrams + pathway-level relationship logic
 ├── analysis.py            # Surprising pairs, repurposing score, PCA/t-SNE, clustering
 ├── data/
 │   ├── raw/
@@ -111,10 +119,10 @@ public drug labels. This project's development environment couldn't reach
 `sideeffects.embl.de` directly (no outbound network access), so OffTarget
 ships with a **curated demo dataset** instead:
 
-- 61 drugs across diverse therapeutic classes (PDE5 inhibitors, SSRIs/SNRIs,
+- 67 drugs across diverse therapeutic classes (PDE5 inhibitors, SSRIs/SNRIs,
   statins, ACE inhibitors/ARBs, NSAIDs, opioids, anticonvulsants,
-  antipsychotics, IMiDs, and more)
-- 96 side-effect terms, hand-compiled from well-documented drug label data
+  antipsychotics, IMiDs, stimulants, an NMDA-receptor anesthetic, and more)
+- 100 side-effect terms, hand-compiled from well-documented drug label data
 - Every drug in the "Validated Case Studies" tab and its known mechanistic
   relatives, so the sanity check has something to recover
 
@@ -128,11 +136,11 @@ python data_prep.py
 ```
 
 `data_prep.py` automatically prefers the real SIDER files over the demo
-dataset when both are present — no code changes needed.
+dataset when both are present; no code changes needed.
 
 ## 3D structures
 
-Each drug's 3D structure comes from a fully offline, one-time pipeline —
+Each drug's 3D structure comes from a fully offline, one-time pipeline,
 consistent with how the side-effect data is handled, and for the same
 reason: this development environment couldn't reach PubChem or RCSB either.
 
@@ -144,21 +152,21 @@ reason: this development environment couldn't reach PubChem or RCSB either.
    (catching typos/invalid structures automatically), generates a 3D
    conformer (ETKDG embedding + MMFF94 optimization), and saves it to
    `data/structures/<drug>.mol`. It also computes a set of standard
-   cheminformatics descriptors for each drug -- molecular weight, LogP,
+   cheminformatics descriptors for each drug; molecular weight, LogP,
    H-bond donor/acceptor counts, topological polar surface area (TPSA),
-   rotatable bond count, and ring count -- and writes them to
+   rotatable bond count, and ring count; then writes them to
    `data/structures/properties.csv`.
 3. `app.py` renders the `.mol` files with [3Dmol.js](https://3dmol.org/),
    vendored locally in `assets/` (BSD-3-Clause) rather than loaded from a
    CDN, and displays each drug's formula and computed properties alongside
-   its structure -- the viewer needs no network access at all, at build
+   its structure; the viewer needs no network access at all, at build
    time or runtime.
 
 **Accuracy caveat:** SMILES were compiled from training knowledge, not
 cross-checked against a live structure database (same constraint as the
-side-effect data). The automated formula check catches gross errors —
-several genuinely wrong structures were caught and fixed this way during
-development — but it doesn't guarantee full stereochemical or connectivity
+side-effect data). The automated formula check catches gross errors; several
+genuinely wrong structures were caught and fixed this way during
+development, but it doesn't guarantee full stereochemical or connectivity
 correctness for more complex molecules. One drug in the dataset
 (oxycodone) is excluded from this feature entirely because its structure
 couldn't be confidently validated. Treat the 3D views as illustrative, not
@@ -168,7 +176,7 @@ as a certified structure database.
 
 This is the part of the methodology that gives the app its name. It follows
 [Campillos et al., "Drug target identification using side-effect
-similarity"](https://doi.org/10.1126/science.1158140) (*Science*, 2008) —
+similarity"](https://doi.org/10.1126/science.1158140) (*Science*, 2008),
 the paper this whole approach is built on. Its key move: side-effect
 similarity isn't just useful for finding a drug's new *indication*, it can
 predict a drug's molecular **target**, including targets nobody has linked
@@ -182,8 +190,8 @@ OffTarget applies that logic directly:
   every statin gets `HMG-CoA reductase`; every PDE5 inhibitor gets
   `Phosphodiesterase type 5 (PDE5)`).
 - `targets.py` classifies every drug pair as **shared** (same target
-  family — the method found something already known), **off-target** (high
-  side-effect similarity, no known shared target — a genuine hypothesis),
+  family; the method found something already known), **off-target** (high
+  side-effect similarity, no known shared target; a genuine hypothesis),
   or **unknown** (target not curated).
 - The **Search** tab badges each result accordingly; the **Off-Target
   Hypotheses** tab scans the entire dataset for the strongest off-target
@@ -195,20 +203,66 @@ polypharmacological (e.g. tramadol, valproate) and are bucketed under a
 single dominant/representative target family; two drugs with genuinely
 related but non-identical targets (e.g. a beta-1-selective vs.
 non-selective beta blocker) may be flagged "off-target" even though they're
-mechanistically close. These are computational leads, not findings — real
+mechanistically close. These are computational leads, not findings; real
 off-target hypotheses need experimental validation before they mean
 anything clinically, same as in the original paper.
+
+### Biological pathways: beyond a flat target name
+
+A target name alone can only say two drugs are identical or unrelated;
+it can't say "these two act on different molecules that sit on the same
+underlying pathway." `pathways.py` models that middle case directly: each
+curated target family is placed on one of 27 hand-built pathways, an
+ordered chain of biological states (molecules, receptor activity,
+downstream effects) connected by the enzyme, receptor, or transporter that
+drives each step. Every drug's target is mapped to the exact step it acts
+on, not just the pathway's name; the blood-pressure pathway alone now has
+three real intervention points modeled (Ramipril blocking ACE, Losartan
+blocking the AT1 receptor, Spironolactone blocking the mineralocorticoid
+receptor further downstream), and Cocaine, a triple monoamine reuptake
+blocker, is mapped onto both branches of the reuptake pathway at once.
+
+This adds a genuine third tier to the shared/off-target split above:
+
+- **Shared target**, same target family (e.g. two PDE5 inhibitors).
+- **Shared pathway, different target**, different targets that sit on the
+  same modeled pathway (an ACE inhibitor and an AT1 blocker, both in the
+  renin-angiotensin-aldosterone pathway; Sildenafil's PDE5 inhibition and
+  Minoxidil's potassium-channel opening, which converge on the same
+  vascular smooth muscle relaxation effect, the very Viagra/Rogaine
+  connection this app's case studies are named after).
+- **No known shared target or pathway**, the fully novel case, like
+  Amoxicillin and Azithromycin, which hit two genuinely distinct bacterial
+  machines (cell wall synthesis vs. the ribosome).
+
+Each pathway renders as a boxes-and-arrows diagram (`app.py`'s
+`render_pathway_diagram()`) with the relevant drug's intervention arrow
+highlighted and tagged by name, shown on the Search tab (a single drug's
+own pathway), and on the Off-Target Hypotheses, Surprising Pairs, and
+Validated Case Studies tabs (both drugs in a pair overlaid on the same
+diagram when they share one). The dataset-wide validation on the Validated
+Case Studies tab also checks this pathway-level view against
+similarity, and on the current dataset it correlates *more* strongly with
+side-effect similarity than exact target matches do (0.58 vs. 0.52 Pearson
+correlation with IDF-weighted Jaccard).
+
+**Caveat:** this is a hand-curated, simplified model built for this
+dataset's 40 target families, not a reference pathway database; several
+pathways compress real multi-step biology into a single arrow for
+readability, and the broad-spectrum anticonvulsants (topiramate,
+valproate) act on several targets simultaneously and are shown as one
+combined step rather than a misleading single mechanism.
 
 ### Reframed side effects
 
 A second, more literal reading of "bad side effects, used positively": some
 side effects have real precedent for becoming a drug's actual therapeutic
-purpose — sildenafil's priapism became Viagra; minoxidil's hypertrichosis
+purpose, sildenafil's priapism became Viagra; minoxidil's hypertrichosis
 became Rogaine. `data/raw/side_effect_reframings.csv` curates a handful of
 these precedents (including a third: topiramate's and bupropion's
 weight-loss side effect, deliberately turned into the weight-management
 drugs Qsymia and Contrave). `targets.py` then generalizes each one past its
-single pioneer drug — for any drug that shares that same side effect, it's
+single pioneer drug; for any drug that shares that same side effect, it's
 flagged as an untapped candidate for the same reframed purpose. The
 **Search** tab surfaces this for whichever drug you're looking at; the
 **Off-Target Hypotheses** tab lists every candidate across the whole
@@ -223,15 +277,15 @@ therapeutic category per drug; `analysis.surprising_pairs()` scans the
 whole similarity matrix for pairs above a threshold whose categories
 differ, ranked by similarity (or by the repurposing score below). For
 each one, `similarity.explain_similarity()` breaks the score down into its
-actual shared side effects, ranked by IDF weight -- not just "0.82
+actual shared side effects, ranked by IDF weight, not just "0.82
 similar," but "led by neuropathy (24%), dry mouth (18%), dizziness (11%)."
 That per-pair explanation is also wired into the Search tab's result cards.
 
 The strongest hit in the current dataset: **Amoxicillin ↔ Azithromycin**,
 85.8% cosine similarity, no known shared target (different antibiotic
-classes -- penicillin-binding proteins vs. the bacterial ribosome) --
-similar not because they hit the same target, but because both are
-antibiotics whose dominant side-effect signature is GI upset.
+classes, penicillin-binding proteins vs. the bacterial ribosome), similar
+not because they hit the same target, but because both are antibiotics
+whose dominant side-effect signature is GI upset.
 
 ### The repurposing score
 
@@ -247,7 +301,7 @@ Repurposing Score = Side-effect similarity × Biological plausibility × Indicat
   known shared target (plausible, just unconfirmed), 0.3 if either drug's
   target isn't curated.
 - **Indication difference** is 1.0 for the cross-category pairs this page
-  shows (same-category pairs are filtered out entirely -- they aren't
+  shows (same-category pairs are filtered out entirely; they aren't
   surprising) and would be 0.2 for a same-category pair.
 
 The formula doesn't claim scientific precision. It exists to rank leads
@@ -261,23 +315,23 @@ this time visually and via unsupervised clustering rather than pairwise
 comparison:
 
 - **Dimensionality reduction.** `analysis.pca_projection()` and
-  `analysis.tsne_projection()` (scikit-learn) turn the 96-dimensional
+  `analysis.tsne_projection()` (scikit-learn) turn the 100-dimensional
   fingerprint matrix into a 2D scatter, colored by therapeutic category or
   known target family. Drugs from the same real-world class visibly
   cluster in places (the PDE5 inhibitors, the 5-alpha reductase inhibitors,
   the statins) purely from side-effect data.
 - **Clustering.** K-means or agglomerative (hierarchical) clustering runs
-  on the fingerprint matrix alone -- therapeutic category is never given to
+  on the fingerprint matrix alone; therapeutic category is never given to
   the algorithm. `analysis.cluster_category_purity()` then checks how
   concentrated each resulting cluster is in a single real category. Mean
   purity sits around 40-50% depending on k and method: well above chance,
-  evidence the method recovers real structure, but nowhere near 100% --
+  evidence the method recovers real structure, but nowhere near 100%;
   the imperfection is itself informative, and is presented as such rather
   than only showing the clusters that worked.
 
 ## Validated case studies
 
-Three documented repurposing stories are used to sanity-check the method
+Four documented repurposing stories are used to sanity-check the method
 (see the app's **Validated Case Studies** tab for the full write-ups and
 live results):
 
@@ -286,11 +340,16 @@ live results):
 | **Sildenafil** (Viagra/Revatio) | Angina pectoris | Erectile dysfunction; pulmonary arterial hypertension | Tadalafil, Vardenafil (other PDE5 inhibitors) |
 | **Minoxidil** (Loniten/Rogaine) | Severe hypertension | Androgenetic alopecia | Hydralazine (another direct vasodilator) |
 | **Thalidomide** (Thalomid) | Sedative/antiemetic | Multiple myeloma; leprosy complications | Lenalidomide, Pomalidomide (IMiD analogs) |
+| **Ketamine** (Ketalar/Spravato) | General anesthetic | Treatment-resistant depression (esketamine) | None in this dataset, included deliberately (see caveat below) |
 
-In each case, the drug's real-world mechanistic relatives rank at or near
-the top of its Jaccard similarity list, purely from shared side-effect
-patterns — the app computes and displays this live rather than hardcoding
-the result.
+In the first three cases, the drug's real-world mechanistic relatives rank
+at or near the top of its Jaccard similarity list, purely from shared
+side-effect patterns; the app computes and displays this live rather than
+hardcoding the result. Ketamine is the deliberate exception: it blocks the
+NMDA receptor, a target no other drug in this dataset touches, so there is
+no relative for the algorithm to recover. It's included anyway as an
+honest example that not every repurposing story has a same-class sibling
+to validate against.
 
 ### Does this hold up across the whole dataset?
 
@@ -299,41 +358,48 @@ dataset-wide version of the same test: for every drug pair with a curated
 target (`targets.all_pairs_target_overlap`), does higher side-effect
 similarity correspond to a higher rate of actually sharing a known target?
 
-Across all 1,830 pairs in the current demo dataset: pairs above 0.5 Jaccard
-similarity share a known target 51.9% of the time, versus under 1% for
-pairs below 0.1 — a Pearson correlation of 0.41 between similarity and
+Across all 2,211 pairs in the current demo dataset: pairs above 0.5 Jaccard
+similarity share a known target 68.0% of the time, versus under 1% for
+pairs below 0.1, a Pearson correlation of 0.43 between similarity and
 shared-target status. That's the general-case evidence behind the three
 anecdotes: the method is picking up something real across the dataset, not
 just for three examples chosen because they already work. It's also not
-evidence the method is reliable for any *single* pair — most high-similarity
+evidence the method is reliable for any *single* pair; most high-similarity
 pairs still don't share a known target, which is precisely the off-target
 hypothesis space the next section is about.
 
 ### Does IDF weighting help?
 
-The 0.41 correlation above uses plain Jaccard, where every side effect
+The 0.43 correlation above uses plain Jaccard, where every side effect
 counts equally. `similarity.py`'s IDF weighting (`w = log(N / n)`, rare
 side effects weighted higher than common ones) is a specific, testable
 claim: it should make similarity track known targets *more* closely. Same
-1,830 pairs, same target curation, only the weighting changes:
+2,211 pairs, same target curation, only the weighting changes:
 
 | | Correlation (similarity vs. shared target) |
 |---|---|
-| Unweighted Jaccard | 0.41 |
-| IDF-weighted Jaccard | 0.51 |
+| Unweighted Jaccard | 0.43 |
+| IDF-weighted Jaccard | 0.52 |
 
 The Validated Case Studies tab shows both numbers live, side by side, so
-this isn't a claim you have to take on faith — the toggle recomputes it in
+this isn't a claim you have to take on faith; the toggle recomputes it in
 the browser. IDF weighting is on by default in the Search and Off-Target
 Hypotheses tabs, with an option to switch it off and see the naive
 baseline for comparison.
+
+The same tab runs one more comparison: does counting a *shared pathway*,
+not just an exact target match, track similarity even more closely? On the
+IDF-weighted pairs, yes, 0.58 correlation counting same-pathway pairs as
+a match, versus 0.52 for exact-target matches only. Both correlation
+figures and the same bin chart, now with a toggle between the two
+definitions of "shares biology," are computed live in the same section.
 
 ## Limitations
 
 - The demo dataset is illustrative, not exhaustive. Absence of a shared
   side effect means it wasn't included in this curated list, not that it
   doesn't exist in reality.
-- Side-effect co-occurrence is a *weak proxy* for shared mechanism — it can
+- Side-effect co-occurrence is a *weak proxy* for shared mechanism; it can
   reflect genuine target overlap, but also coincidence, drug-class labeling
   conventions, or reporting bias in the source data.
 - Results are hypothesis-generating leads for further investigation, not
@@ -343,18 +409,22 @@ baseline for comparison.
 - Known-target curation is a simplification (see the caveat above); an
   "off-target hypothesis" badge means *no known shared target in this
   dataset*, not an experimentally confirmed novel mechanism.
-- IDF weights are computed from a 61-drug demo dataset, not the full ~1,400
-  SIDER catalog, so `n_i` for any given side effect is a small, noisy count
-  — a side effect that looks "rare" here might not be rare in reality. The
+- Pathway curation (`pathways.py`) is hand-built for this dataset's 40
+  target families, not sourced from a reference pathway database like
+  KEGG or Reactome; treat each diagram as an educational simplification of
+  real, often more branched and multi-step, biology.
+- IDF weights are computed from a 67-drug demo dataset, not the full ~1,400
+  SIDER catalog, so `n_i` for any given side effect is a small, noisy count;
+  a side effect that looks "rare" here might not be rare in reality. The
   weighted-vs-unweighted correlation comparison would be worth re-running
   once real SIDER data is plugged in.
 - Therapeutic category curation (`drug_categories.csv`) is a simplification
-  at a similar granularity to target curation — real drugs often straddle
+  at a similar granularity to target curation; real drugs often straddle
   categories (aspirin is both an NSAID and an antiplatelet), and category
   strings were deliberately unified for drugs in the same well-known class
   (e.g. all PDE5 inhibitors) so they wouldn't falsely register as
   "surprising" cross-category pairs.
-- PCA/t-SNE and clustering are run on a 61-drug, 96-side-effect matrix —
+- PCA/t-SNE and clustering are run on a 67-drug, 100-side-effect matrix,
   small enough that results (especially t-SNE, which is sensitive to
   sample size) should be read as illustrative, not as a claim about the
   true geometry of drug side-effect space.
@@ -374,9 +444,9 @@ streamlit run app.py
 
 The generated 3D structures in `data/structures/` are already checked into
 the repo, so no extra step is needed to see them. To regenerate them (e.g.
-after editing `data/raw/drug_smiles.csv`), install RDKit separately — it's
+after editing `data/raw/drug_smiles.csv`), install RDKit separately; it's
 a data-prep tool, not a runtime dependency, so it's not in
-`requirements.txt` — and re-run the pipeline:
+`requirements.txt`, and re-run the pipeline:
 
 ```bash
 pip install rdkit
