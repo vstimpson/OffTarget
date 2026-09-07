@@ -95,6 +95,31 @@ CASE_STUDIES = [
             "approach picks up directly from the data."
         ),
     },
+    {
+        "drug": "Ketamine",
+        "brand": "Ketalar / Spravato",
+        "original_use": "General anesthetic (introduced in the 1960s)",
+        "repurposed_use": "Treatment-resistant depression (esketamine, Spravato)",
+        "known_relatives": [],
+        "story": (
+            "Ketamine has been used as a dissociative anesthetic since the "
+            "1960s, valued for knocking patients out without suppressing "
+            "breathing the way most anesthetics do. Decades later, "
+            "researchers noticed that a single low dose lifted mood within "
+            "hours in patients who hadn't responded to any other "
+            "antidepressant, a completely different timescale from SSRIs, "
+            "which take weeks. That observation led to esketamine "
+            "(Spravato), an FDA-approved treatment for depression that "
+            "doesn't respond to standard drugs. Unlike the other three "
+            "case studies, ketamine has no close mechanistic relative in "
+            "this dataset: it blocks the NMDA glutamate receptor, a "
+            "target no other drug here touches, so there's nothing for "
+            "the algorithm to recover. That's included deliberately, as a "
+            "reminder that not every repurposing story has a same-class "
+            "sibling to validate against; sometimes a drug really is "
+            "mechanistically alone in the data you have."
+        ),
+    },
 ]
 
 
@@ -541,7 +566,7 @@ def search_tab(matrix: pd.DataFrame) -> None:
             help="Down-weight common side effects (headache, nausea) and "
                  "up-weight rare ones, the way TF-IDF weights words. "
                  "Measurably improves agreement with known drug targets "
-                 "(0.41 -> 0.51 correlation); see the Validated Case "
+                 "(0.43 -> 0.52 correlation); see the Validated Case "
                  "Studies tab.",
         )
 
@@ -665,13 +690,20 @@ def case_studies_tab(matrix: pd.DataFrame) -> None:
                 with st.expander(f"Biological pathway: {case['drug']} vs. its recovered relatives"):
                     for relative in hits:
                         render_pair_pathways(case["drug"], relative, targets)
-                render_structure_row([case["drug"]] + hits)
-            else:
+            elif case["known_relatives"]:
                 st.warning(
                     f"None of {', '.join(case['known_relatives'])} appear in "
                     f"{case['drug']}'s top 10; they may be missing from "
                     "the demo dataset."
                 )
+            else:
+                st.info(
+                    f"{case['drug']} has no curated mechanistic relative in "
+                    "this dataset, so there's nothing to recover. Its top "
+                    "matches below are driven by incidental side-effect "
+                    "overlap rather than a shared target or pathway."
+                )
+            render_structure_row([case["drug"]] + hits)
 
             with st.expander(f"Full top-10 similarity ranking for {case['drug']}"):
                 st.dataframe(results, use_container_width=True, hide_index=True)
@@ -992,7 +1024,7 @@ def surprising_pairs_tab(matrix: pd.DataFrame) -> None:
 def cluster_map_tab(matrix: pd.DataFrame) -> None:
     st.subheader("Cluster map")
     st.write(
-        "Every drug here is really just a checklist of up to 96 possible "
+        "Every drug here is really just a checklist of up to 100 possible "
         "side effects (see the glossary in the sidebar if any term on this "
         "page is unfamiliar). This tab draws those checklists as a picture "
         "you can look at, and checks whether drugs that end up looking "
@@ -1004,8 +1036,8 @@ def cluster_map_tab(matrix: pd.DataFrame) -> None:
         st.markdown(
             """
 **PCA (Principal Component Analysis)** is a linear projection. It finds
-the two directions through the 96-item side-effect checklist that
-capture the most spread (variance) across all 61 drugs, and plots each
+the two directions through the 100-item side-effect checklist that
+capture the most spread (variance) across all 67 drugs, and plots each
 drug's position along those two directions. Because it's linear and
 deterministic, the same drug always lands in the same place, and the axes
 have a real, if abstract, meaning: "direction of most variation," "second
@@ -1080,7 +1112,7 @@ it as definitive.
     )
     st.plotly_chart(fig, use_container_width=True)
     st.caption(
-        "Each point is one drug, positioned using its full 96-item "
+        "Each point is one drug, positioned using its full 100-item "
         "side-effect checklist. Neither axis corresponds to a specific "
         "side effect or has physical units. PCA axes are directions of "
         "greatest variance across all checklists combined; t-SNE axes "
@@ -1185,8 +1217,8 @@ def about_tab(matrix: pd.DataFrame) -> None:
         weight 0; a side effect present in one drug out of sixty gets the
         highest weight. This isn't just a plausible tweak: on this dataset
         it measurably improves agreement with known drug targets (Jaccard
-        correlation with shared-target status rises from 0.41 unweighted to
-        0.51 weighted; see the Validated Case Studies tab for the live
+        correlation with shared-target status rises from 0.43 unweighted to
+        0.52 weighted; see the Validated Case Studies tab for the live
         comparison). Toggle it on the Search and Off-Target Hypotheses tabs.
         """
     )
@@ -1207,7 +1239,7 @@ def about_tab(matrix: pd.DataFrame) -> None:
     st.markdown(
         """
         **Data source.** This deployment ships with a curated, hand-built
-        demo dataset (61 drugs, 96 MedDRA-style side-effect terms) covering
+        demo dataset (67 drugs, 100 MedDRA-style side-effect terms) covering
         diverse drug classes and every case study on the previous tab,
         because this environment can't reach sideeffects.embl.de directly to
         download the full SIDER database. `data_prep.py` will automatically
@@ -1274,7 +1306,7 @@ def about_tab(matrix: pd.DataFrame) -> None:
         indication difference) for ranking leads; see that tab for the
         formula and its explicit caveats.
 
-        **Cluster map.** A PCA or t-SNE projection turns each drug's 96-item
+        **Cluster map.** A PCA or t-SNE projection turns each drug's 100-item
         side-effect checklist into a single dot on a 2D picture, colored by
         therapeutic category or target family; if same-class drugs cluster
         together visually, that's evidence the checklists encode real
@@ -1326,7 +1358,7 @@ def main() -> None:
             st.markdown(
                 """
 **Side-effect checklist (the "fingerprint").** Picture a list of every
-side effect in the dataset, 96 of them. Each drug gets a checkmark next
+side effect in the dataset, 100 of them. Each drug gets a checkmark next
 to every side effect it's known to cause, and an empty box for every one
 it doesn't. That checklist is all this app actually knows about a drug.
 

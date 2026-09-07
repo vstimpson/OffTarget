@@ -38,12 +38,14 @@ PATHWAYS: dict[str, dict] = {
                     "Angiotensinogen (an inactive protein made by the liver)",
                     "Angiotensin I (still inactive)",
                     "Angiotensin II (the active signal)",
+                    "Aldosterone released from the adrenal glands",
                     "Blood vessels narrow and the kidneys retain salt: blood pressure rises",
                 ],
                 "edges": [
                     "Renin cuts it into",
                     "ACE converts it into",
-                    "Binds the AT1 receptor, triggering",
+                    "Binds the AT1 receptor, triggering release of",
+                    "Binds the mineralocorticoid receptor in the kidney, causing",
                 ],
             }
         ],
@@ -209,7 +211,7 @@ PATHWAYS: dict[str, dict] = {
     },
     "monoamine_reuptake": {
         "name": "Monoamine reuptake pathway",
-        "summary": "After a mood/alertness-related neurotransmitter is released, a reuptake transporter normally pulls it back in and ends the signal. Blocking that transporter leaves more of it in the synapse, prolonging the signal -- the basis for most antidepressants and stimulants in this dataset.",
+        "summary": "After a mood/alertness-related neurotransmitter is released, a reuptake transporter normally pulls it back in and ends the signal. Blocking that transporter leaves more of it in the synapse, prolonging the signal; that's the basis for most antidepressants and stimulants in this dataset.",
         "branches": [
             {
                 "label": "Serotonin branch",
@@ -332,18 +334,18 @@ PATHWAYS: dict[str, dict] = {
     },
     "estrogen": {
         "name": "Estrogen receptor pathway",
-        "summary": "Selective estrogen receptor modulators (SERMs) block the receptor in some tissues while leaving it active in others.",
+        "summary": "The estrogen receptor sits in many tissues at once (breast, uterus, bone). A full agonist (the natural hormone, or hormone replacement therapy) activates it everywhere; a selective modulator (SERM) blocks it in some tissues while leaving it active in others.",
         "branches": [
             {
                 "label": None,
                 "nodes": [
                     "Estrogen circulating in the body",
                     "Estrogen receptor activity (tissue-specific)",
-                    "Breast tissue growth blocked; bone tissue growth preserved",
+                    "Downstream tissue effects: breast and uterine lining growth, bone density, mood",
                 ],
                 "edges": [
                     "Binds the estrogen receptor, driving",
-                    "Blocking the receptor in some tissues but not others produces",
+                    "Receptor activity across different tissues produces",
                 ],
             }
         ],
@@ -444,9 +446,27 @@ PATHWAYS: dict[str, dict] = {
             }
         ],
     },
+    "nmda_glutamate": {
+        "name": "NMDA receptor / glutamate signaling pathway",
+        "summary": "Glutamate is the brain's main excitatory (activating) signal. Blocking its NMDA receptor briefly quiets that signal, which triggers a rebound burst of activity elsewhere thought to be behind both dissociative anesthesia and rapid antidepressant effects.",
+        "branches": [
+            {
+                "label": None,
+                "nodes": [
+                    "Glutamate (the brain's main excitatory signal) is released",
+                    "NMDA receptor activity",
+                    "Rebound surge of signaling and new synaptic connections form",
+                ],
+                "edges": [
+                    "Binds the NMDA receptor, normally driving",
+                    "Blocking the receptor briefly, then releasing it, triggers a",
+                ],
+            }
+        ],
+    },
     "cell_wall": {
         "name": "Bacterial cell wall pathway",
-        "summary": "One of three distinct bacterial machines this dataset's antibiotics attack -- deliberately kept separate from the other two below, since a drug hitting a different one is a genuinely different mechanism, not a variation on the same pathway.",
+        "summary": "One of three distinct bacterial machines this dataset's antibiotics attack, deliberately kept separate from the other two below, since a drug hitting a different one is a genuinely different mechanism, not a variation on the same pathway.",
         "branches": [
             {
                 "label": None,
@@ -551,6 +571,9 @@ TARGET_TO_PATHWAY: dict[str, list[dict]] = {
     "Estrogen receptor (SERM)": [
         {"pathway": "estrogen", "branch": 0, "edge": 1, "verb": "selectively blocks or activates"}
     ],
+    "Estrogen receptor (agonist)": [
+        {"pathway": "estrogen", "branch": 0, "edge": 1, "verb": "activates", "note": "hormone replacement"}
+    ],
     "GABA-A receptor": [{"pathway": "gaba", "branch": 0, "edge": 0, "verb": "enhances"}],
     "Glucocorticoid receptor": [{"pathway": "glucocorticoid", "branch": 0, "edge": 0, "verb": "activates"}],
     "H+/K+-ATPase (proton pump)": [{"pathway": "gastric_acid", "branch": 0, "edge": 1, "verb": "blocks"}],
@@ -558,7 +581,13 @@ TARGET_TO_PATHWAY: dict[str, list[dict]] = {
     "Histamine H1 receptor": [{"pathway": "histamine_h1", "branch": 0, "edge": 1, "verb": "blocks"}],
     "Histamine H2 receptor": [{"pathway": "gastric_acid", "branch": 0, "edge": 0, "verb": "blocks"}],
     "L-type calcium channel": [{"pathway": "vascular_relaxation", "branch": 2, "edge": 0, "verb": "blocks"}],
+    "Mineralocorticoid receptor": [{"pathway": "raas", "branch": 0, "edge": 3, "verb": "blocks"}],
+    "Monoamine reuptake transporter (triple: DAT/NET/SERT)": [
+        {"pathway": "monoamine_reuptake", "branch": 0, "edge": 0, "verb": "blocks"},
+        {"pathway": "monoamine_reuptake", "branch": 1, "edge": 0, "verb": "blocks"},
+    ],
     "Mu-opioid receptor": [{"pathway": "opioid", "branch": 0, "edge": 0, "verb": "activates"}],
+    "NMDA receptor": [{"pathway": "nmda_glutamate", "branch": 0, "edge": 1, "verb": "blocks"}],
     "Nicotinic acetylcholine receptor (alpha4beta2)": [
         {"pathway": "nicotinic", "branch": 0, "edge": 0, "verb": "partially activates"}
     ],
