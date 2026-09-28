@@ -466,7 +466,7 @@ PATHWAYS: dict[str, dict] = {
     },
     "cell_wall": {
         "name": "Bacterial cell wall pathway",
-        "summary": "One of three distinct bacterial machines this dataset's antibiotics attack, deliberately kept separate from the other two below, since a drug hitting a different one is a genuinely different mechanism, not a variation on the same pathway.",
+        "summary": "One of three distinct bacterial machines this dataset's antibiotics attack, kept separate from the other two below on purpose: a drug hitting a different one works by a different mechanism, not a variation on the same pathway.",
         "branches": [
             {
                 "label": None,

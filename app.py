@@ -135,8 +135,15 @@ def inject_css() -> None:
     st.markdown(
         """
         <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500..700&display=swap');
         .stApp { background-color: #F8FAFC; }
         h1, h2, h3 { color: #1E293B; }
+        h1 {
+            font-family: "Fraunces", Georgia, "Times New Roman", serif !important;
+            font-weight: 600 !important;
+            font-optical-sizing: auto;
+            letter-spacing: -0.01em;
+        }
         .sm-card {
             background: #FFFFFF;
             border: 1px solid #CBD5E1;
@@ -807,12 +814,12 @@ def render_target_validation(matrix: pd.DataFrame) -> None:
 
     st.caption(
         f"A correlation of {stats['correlation']:.2f} across {stats['n_pairs']:,} pairs, "
-        f"and a {scope_label} rate that climbs with similarity, is the general-case "
-        "version of what the case studies show individually: this isn't just "
-        "picking three examples that happen to work. It's also not proof the "
-        "method is reliable for any single pair, most high-similarity pairs "
-        f"*still* don't share a known target or pathway, which is exactly the "
-        "off-target hypothesis space the previous tab explores."
+        f"with the {scope_label} rate climbing alongside similarity, backs up what "
+        "the three case studies show individually: it's not three cherry-picked "
+        "examples. That said, it doesn't mean the method is reliable for any "
+        f"single pair. Most high-similarity pairs still don't share a known "
+        "target or pathway, which is the off-target hypothesis space the "
+        "previous tab explores."
     )
 
 
@@ -1043,12 +1050,12 @@ deterministic, the same drug always lands in the same place, and the axes
 have a real, if abstract, meaning: "direction of most variation," "second
 most variation." Its weakness: if the interesting structure in the data is
 a tight, non-linear clustering rather than broad spread, PCA can wash it
-out. Two genuinely similar drugs can end up looking far apart if the
+out. Two similar drugs can end up looking far apart if the
 dominant variance in the dataset runs a different direction.
 
 **t-SNE (t-distributed Stochastic Neighbor Embedding)** is non-linear, and
 optimized for a different goal: keep points that are close neighbors in
-the original 96D space close together in the 2D plot, without caring
+the original 100D space close together in the 2D plot, without caring
 whether it preserves distances between far-apart points or the overall
 shape. This is why it tends to produce visually tighter, more dramatic
 clusters than PCA, since it's built specifically to reveal local grouping.
@@ -1062,11 +1069,11 @@ Only "near" versus "not near" is meaningful.
 agreement between them is more convincing than either alone. If two drugs
 land close together under both PCA (a global, linear method) and t-SNE (a
 local, non-linear method), that's a stronger signal than either method
-individually, since it isn't just an artifact of one algorithm's
-particular bias. Where they disagree is also informative: it flags cases
-where "closeness" depends on which notion of similarity is used, which is
-worth being upfront about rather than picking one method and presenting
-it as definitive.
+alone, since it isn't riding on one algorithm's particular bias. Where
+they disagree is also informative: it flags cases where "closeness"
+depends on which notion of similarity is used, which is worth being
+upfront about rather than picking one method and presenting it as
+definitive.
             """
         )
 
@@ -1215,11 +1222,12 @@ def about_tab(matrix: pd.DataFrame) -> None:
         the same idea as IDF in TF-IDF, applied to a presence matrix
         instead of word counts. A side effect present in every drug gets
         weight 0; a side effect present in one drug out of sixty gets the
-        highest weight. This isn't just a plausible tweak: on this dataset
-        it measurably improves agreement with known drug targets (Jaccard
-        correlation with shared-target status rises from 0.43 unweighted to
-        0.52 weighted; see the Validated Case Studies tab for the live
-        comparison). Toggle it on the Search and Off-Target Hypotheses tabs.
+        highest weight. It's not just a plausible tweak, either: on this
+        dataset it measurably improves agreement with known drug targets
+        (Jaccard correlation with shared-target status rises from 0.43
+        unweighted to 0.52 weighted; see the Validated Case Studies tab for
+        the live comparison). Toggle it on the Search and Off-Target
+        Hypotheses tabs.
         """
     )
     weights = get_idf_weights(matrix)
@@ -1263,25 +1271,25 @@ def about_tab(matrix: pd.DataFrame) -> None:
 
         **Biological pathways.** A target name alone (`data/raw/drug_targets.csv`)
         can only say two drugs are identical or unrelated. `pathways.py`
-        goes one level deeper: each curated target family is placed on a
-        modeled pathway, an ordered chain of molecular states connected by
-        the enzyme, receptor, or transporter that converts one into the
-        next, built by hand for this dataset's 35 target families and
-        rendered as a boxes-and-arrows diagram with each drug's exact
-        intervention point highlighted. This adds a real middle tier
-        between "same target" and "no known connection": two drugs can act
-        on different proteins that still sit on the same pathway (an ACE
-        inhibitor and an AT1 blocker in the blood-pressure pathway; a PDE5
-        inhibitor and a potassium-channel opener that both end in vascular
-        smooth muscle relaxation). On this dataset, that pathway-level view
-        correlates with side-effect similarity even more strongly than
-        exact target matches do, see the pathway comparison in the
-        Validated Case Studies tab. It's still a simplified, hand-curated
-        model, not a reference database: several pathways compress multiple
-        real intermediate steps into one arrow for readability, and a
-        handful of drugs (the broad-spectrum anticonvulsants) act on
-        several targets at once and are shown as a single combined step
-        rather than a false single mechanism.
+        goes one level deeper: each curated target family sits on a modeled
+        pathway, an ordered chain of molecular states connected by the
+        enzyme, receptor, or transporter that converts one into the next,
+        built by hand for this dataset's 40 target families and rendered
+        as a boxes-and-arrows diagram with each drug's intervention point
+        highlighted. This adds a real middle tier between "same target" and
+        "no known connection": two drugs can act on different proteins that
+        still sit on the same pathway (an ACE inhibitor and an AT1 blocker
+        in the blood-pressure pathway; a PDE5 inhibitor and a
+        potassium-channel opener that both end in vascular smooth muscle
+        relaxation). On this dataset that pathway-level view correlates
+        with side-effect similarity even more strongly than exact target
+        matches do; see the pathway comparison in the Validated Case
+        Studies tab. It's still a simplified, hand-curated model, not a
+        reference database: several pathways compress multiple real
+        intermediate steps into one arrow for readability, and a handful of
+        drugs (the broad-spectrum anticonvulsants) act on several targets
+        at once and are shown as a single combined step rather than a
+        false single mechanism.
 
         **Reframed side effects.** A more literal reading of "bad side
         effects, used positively": some side effects have real precedent
