@@ -137,8 +137,8 @@ def inject_css() -> None:
         <style>
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap');
         .stApp { background-color: #F8FAFC; }
-        h1, h2, h3 { color: #1E293B; }
-        h1 {
+        h1, h2, h3, h4 { color: #1E293B; }
+        h1, h2, h3, h4 {
             font-family: "DM Serif Display", Georgia, "Times New Roman", serif !important;
             font-weight: 400 !important;
         }
