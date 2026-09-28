@@ -135,14 +135,12 @@ def inject_css() -> None:
     st.markdown(
         """
         <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500..700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap');
         .stApp { background-color: #F8FAFC; }
         h1, h2, h3 { color: #1E293B; }
         h1 {
-            font-family: "Fraunces", Georgia, "Times New Roman", serif !important;
-            font-weight: 600 !important;
-            font-optical-sizing: auto;
-            letter-spacing: -0.01em;
+            font-family: "DM Serif Display", Georgia, "Times New Roman", serif !important;
+            font-weight: 400 !important;
         }
         .sm-card {
             background: #FFFFFF;
