@@ -711,7 +711,10 @@ def search_tab(matrix: pd.DataFrame) -> None:
 
     render_reframing_signals(drug, matrix)
 
-    results = top_n_similar(drug, matrix, n=n, metric=metric, weighted=weighted)
+    results = _with_min_spinner(
+        f"Comparing {drug} against every other drug...",
+        lambda: top_n_similar(drug, matrix, n=n, metric=metric, weighted=weighted),
+    )
     if results.empty:
         st.warning("No other drugs share any side effects with this one in the demo dataset.")
         return
@@ -821,7 +824,7 @@ def case_studies_tab(matrix: pd.DataFrame) -> None:
                     "matches below are driven by incidental side-effect "
                     "overlap rather than a shared target or pathway."
                 )
-            render_structure_row([case["drug"]] + hits)
+            render_structure_row_lazy(f"show_struct_case_{case['drug']}", [case["drug"]] + hits)
 
             with st.expander(f"Full top-10 similarity ranking for {case['drug']}"):
                 st.dataframe(results, use_container_width=True, hide_index=True)
