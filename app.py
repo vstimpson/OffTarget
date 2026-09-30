@@ -208,15 +208,21 @@ def inject_css() -> None:
             border-radius: 999px; padding: 0.05rem 0.5rem; font-size: 0.68rem; font-weight: 600;
         }
         div[data-testid="stSpinner"] {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 1rem;
-            padding: 1.5rem;
-            margin: 0.75rem 0;
+            gap: 0.75rem;
+            padding: 2rem 2.5rem;
             background: #F0FDFA;
             border: 1px solid #5EEAD4;
             border-radius: 14px;
+            box-shadow: 0 10px 40px rgba(15, 118, 110, 0.25);
         }
         div[data-testid="stSpinner"] [data-testid="stSpinnerIcon"] {
             width: 2.5rem !important;
