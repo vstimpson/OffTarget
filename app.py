@@ -967,12 +967,33 @@ def off_target_tab(matrix: pd.DataFrame) -> None:
         )
     with cb_col:
         weighted = st.checkbox("IDF-weighted", value=True, key="offtarget_weighted")
+
+    categories = get_categories()
+    category_filter = st.multiselect(
+        "Filter by therapeutic category (either drug)",
+        options=sorted(categories["therapeutic_category"].unique()),
+        key="offtarget_category_filter",
+        help="Only show hypotheses involving at least one drug from these "
+             "categories. Leave empty to show all.",
+    )
+
     sims = get_similarity(matrix, "jaccard", weighted)
     targets = get_targets()
-    hypotheses = top_off_target_hypotheses(sims, targets, min_similarity=min_sim, n=15)
+    hypotheses = top_off_target_hypotheses(sims, targets, min_similarity=min_sim, n=300)
+
+    if not hypotheses.empty:
+        cat_map = categories["therapeutic_category"]
+        hypotheses["category_a"] = hypotheses["drug_a"].map(cat_map).fillna("unknown")
+        hypotheses["category_b"] = hypotheses["drug_b"].map(cat_map).fillna("unknown")
+        if category_filter:
+            hypotheses = hypotheses[
+                hypotheses["category_a"].isin(category_filter)
+                | hypotheses["category_b"].isin(category_filter)
+            ]
+        hypotheses = hypotheses.head(15).reset_index(drop=True)
 
     if hypotheses.empty:
-        st.info("No off-target hypotheses at this similarity threshold; try lowering it.")
+        st.info("No off-target hypotheses match the current filters; try loosening them.")
     else:
         st.markdown(f"#### Top {len(hypotheses)} off-target hypotheses in this dataset")
         pathway_badge = {
@@ -989,7 +1010,8 @@ def off_target_tab(matrix: pd.DataFrame) -> None:
                     row["pathway_relationship"], ("sm-badge-unknown", "Pathway unmapped")
                 )
                 st.markdown(
-                    f"**{row['drug_a']}** ↔ **{row['drug_b']}** "
+                    f"**{row['drug_a']}** ({row['category_a']}) ↔ "
+                    f"**{row['drug_b']}** ({row['category_b']})  \n"
                     f"<span class='sm-score'>{row['similarity']:.1%} similarity</span> "
                     f"<span class='sm-badge {badge_class}'>{badge_text}</span>",
                     unsafe_allow_html=True,
@@ -1069,13 +1091,27 @@ def surprising_pairs_tab(matrix: pd.DataFrame) -> None:
 
     weighted = st.checkbox("IDF-weighted", value=True, key="sp_weighted")
 
-    sims = get_similarity(matrix, metric, weighted)
     categories = get_categories()
+    category_filter = st.multiselect(
+        "Filter by therapeutic category (either drug)",
+        options=sorted(categories["therapeutic_category"].unique()),
+        key="sp_category_filter",
+        help="Only show pairs involving at least one drug from these "
+             "categories. Leave empty to show all.",
+    )
+
+    sims = get_similarity(matrix, metric, weighted)
     targets = get_targets()
-    pairs = surprising_pairs(sims, categories, targets, min_similarity=min_sim, n=20, sort_by=sort_by)
+    pairs = surprising_pairs(sims, categories, targets, min_similarity=min_sim, n=300, sort_by=sort_by)
+
+    if category_filter:
+        pairs = pairs[
+            pairs["category_a"].isin(category_filter) | pairs["category_b"].isin(category_filter)
+        ]
+    pairs = pairs.head(20).reset_index(drop=True)
 
     if pairs.empty:
-        st.info("No cross-category pairs at this similarity threshold; try lowering it.")
+        st.info("No cross-category pairs match the current filters; try loosening them.")
         return
 
     st.markdown(f"#### Top {len(pairs)} surprising pairs")
