@@ -205,6 +205,29 @@ def inject_css() -> None:
             display: inline-block; margin-top: 0.2rem; background: #0D9488; color: white;
             border-radius: 999px; padding: 0.05rem 0.5rem; font-size: 0.68rem; font-weight: 600;
         }
+        div[data-testid="stSpinner"] {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            padding: 1.5rem;
+            margin: 0.75rem 0;
+            background: #F0FDFA;
+            border: 1px solid #5EEAD4;
+            border-radius: 14px;
+        }
+        div[data-testid="stSpinner"] [data-testid="stSpinnerIcon"] {
+            width: 2.5rem !important;
+            height: 2.5rem !important;
+            border-width: 5px !important;
+            border-top-color: #0D9488 !important;
+        }
+        div[data-testid="stSpinner"] p {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #0F766E;
+            margin: 0;
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -213,12 +236,14 @@ def inject_css() -> None:
 
 @st.cache_data
 def get_matrix() -> pd.DataFrame:
-    return load_matrix()
+    with st.spinner("Loading the drug dataset..."):
+        return load_matrix()
 
 
 @st.cache_data
 def get_similarity(_matrix: pd.DataFrame, metric: str, weighted: bool = False) -> pd.DataFrame:
-    return similarity_matrix(_matrix, metric=metric, weighted=weighted)
+    with st.spinner("Comparing side-effect profiles..."):
+        return similarity_matrix(_matrix, metric=metric, weighted=weighted)
 
 
 @st.cache_data
@@ -243,17 +268,21 @@ def get_categories() -> pd.DataFrame:
 
 @st.cache_data
 def get_pca(_matrix: pd.DataFrame) -> pd.DataFrame:
-    return pca_projection(_matrix)
+    with st.spinner("Running PCA..."):
+        return pca_projection(_matrix)
 
 
 @st.cache_data
 def get_tsne(_matrix: pd.DataFrame) -> pd.DataFrame:
-    return tsne_projection(_matrix)
+    with st.spinner("Running t-SNE (this can take a few seconds)..."):
+        return tsne_projection(_matrix)
 
 
 @st.cache_data
 def get_clusters(_matrix: pd.DataFrame, n_clusters: int, method: str) -> pd.Series:
-    return cluster_drugs(_matrix, n_clusters=n_clusters, method=method)
+    method_label = "K-means" if method == "kmeans" else "hierarchical"
+    with st.spinner(f"Running {method_label} clustering..."):
+        return cluster_drugs(_matrix, n_clusters=n_clusters, method=method)
 
 
 def pathway_badge_html(query: str, other: str, targets: pd.DataFrame) -> str:
@@ -517,6 +546,29 @@ def render_structure_row(drugs: list[str], height: int = 220) -> None:
             render_properties(drug, properties)
 
 
+def render_structure_row_lazy(key: str, drugs: list[str], height: int = 220) -> None:
+    """Only build the 3D viewers once the user asks for them.
+
+    Each viewer inlines its own copy of the (~500KB) 3Dmol.js library, since
+    every `components.html()` call is a sandboxed iframe that can't share a
+    library instance with the page or with other viewers. Rendering these
+    eagerly inside a collapsed expander still runs on every script rerun
+    (Streamlit doesn't skip a closed expander's body), so a page with many
+    rows of structures ends up shipping tens of megabytes of duplicate JS on
+    every single interaction anywhere in the app. Gating on a button click
+    avoids that until someone actually wants to see the molecules.
+    """
+    if st.session_state.get(key, False):
+        if st.button("Hide 3D structures and properties", key=f"{key}_btn"):
+            st.session_state[key] = False
+            st.rerun()
+        render_structure_row(drugs, height=height)
+    else:
+        if st.button("Show 3D structures and properties", key=f"{key}_btn"):
+            st.session_state[key] = True
+            st.rerun()
+
+
 def render_reframing_signals(drug: str, matrix: pd.DataFrame) -> None:
     """Flag side effects of `drug` with real precedent for becoming the
     actual therapeutic purpose, the Viagra/Rogaine pattern generalized.
@@ -620,13 +672,13 @@ def search_tab(matrix: pd.DataFrame) -> None:
     with st.expander("View as data table"):
         st.dataframe(results, use_container_width=True, hide_index=True)
 
-    with st.expander("3D structures: query vs. top matches", expanded=False):
-        st.caption(
-            "Rotate and zoom each structure. Side-effect similarity is a "
-            "phenotypic signal, not a chemical one; these compounds can "
-            "(and often do) look nothing alike structurally."
-        )
-        render_structure_row([drug] + list(results["drug_name"][:4]))
+    st.markdown("##### 3D structures: query vs. top matches")
+    st.caption(
+        "Rotate and zoom each structure. Side-effect similarity is a "
+        "phenotypic signal, not a chemical one; these compounds can "
+        "(and often do) look nothing alike structurally."
+    )
+    render_structure_row_lazy(f"show_struct_offtarget_{drug}", [drug] + list(results["drug_name"][:4]))
 
 
 def case_studies_tab(matrix: pd.DataFrame) -> None:
@@ -885,8 +937,10 @@ def off_target_tab(matrix: pd.DataFrame) -> None:
                 )
                 with st.expander("Biological pathway comparison"):
                     render_pair_pathways(row["drug_a"], row["drug_b"], targets)
-                with st.expander("3D structures and properties"):
-                    render_structure_row([row["drug_a"], row["drug_b"]])
+                render_structure_row_lazy(
+                    f"show_struct_hyp_{row['drug_a']}_{row['drug_b']}",
+                    [row["drug_a"], row["drug_b"]],
+                )
 
         with st.expander("View as data table"):
             st.dataframe(hypotheses, use_container_width=True, hide_index=True)
@@ -998,8 +1052,10 @@ def surprising_pairs_tab(matrix: pd.DataFrame) -> None:
 
             with st.expander("Biological pathway comparison"):
                 render_pair_pathways(row["drug_a"], row["drug_b"], targets)
-            with st.expander("3D structures and properties"):
-                render_structure_row([row["drug_a"], row["drug_b"]])
+            render_structure_row_lazy(
+                f"show_struct_pair_{row['drug_a']}_{row['drug_b']}",
+                [row["drug_a"], row["drug_b"]],
+            )
 
     with st.expander("View as data table"):
         st.dataframe(pairs, use_container_width=True, hide_index=True)
