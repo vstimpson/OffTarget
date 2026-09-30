@@ -219,8 +219,23 @@ def inject_css() -> None:
         div[data-testid="stSpinner"] [data-testid="stSpinnerIcon"] {
             width: 2.5rem !important;
             height: 2.5rem !important;
-            border-width: 5px !important;
-            border-top-color: #0D9488 !important;
+            border: none !important;
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            animation: sm-pill-shake 0.6s ease-in-out infinite !important;
+        }
+        div[data-testid="stSpinner"] [data-testid="stSpinnerIcon"]::before {
+            content: "💊";
+            font-size: 2.2rem;
+            line-height: 1;
+        }
+        @keyframes sm-pill-shake {
+            0%, 100% { transform: rotate(0deg); }
+            20% { transform: rotate(-18deg); }
+            40% { transform: rotate(14deg); }
+            60% { transform: rotate(-10deg); }
+            80% { transform: rotate(6deg); }
         }
         div[data-testid="stSpinner"] p {
             font-size: 1.1rem;
