@@ -451,3 +451,180 @@ Estradiol,fluid retention
 Estradiol,endometrial hyperplasia
 Estradiol,thrombosis
 Estradiol,mood changes
+Atenolol,fatigue
+Atenolol,bradycardia
+Atenolol,cold extremities
+Atenolol,dizziness
+Atenolol,hypotension
+Carvedilol,dizziness
+Carvedilol,fatigue
+Carvedilol,bradycardia
+Carvedilol,hypotension
+Carvedilol,diarrhea
+Diltiazem,headache
+Diltiazem,dizziness
+Diltiazem,peripheral edema
+Diltiazem,bradycardia
+Diltiazem,constipation
+Verapamil,constipation
+Verapamil,dizziness
+Verapamil,bradycardia
+Verapamil,hypotension
+Verapamil,headache
+Clonidine,dry mouth
+Clonidine,somnolence
+Clonidine,dizziness
+Clonidine,constipation
+Clonidine,fatigue
+Tamsulosin,dizziness
+Tamsulosin,headache
+Tamsulosin,ejaculation disorder
+Tamsulosin,hypotension
+Tamsulosin,nasal congestion
+Doxazosin,dizziness
+Doxazosin,headache
+Doxazosin,fatigue
+Doxazosin,hypotension
+Doxazosin,peripheral edema
+Furosemide,dizziness
+Furosemide,hypotension
+Furosemide,hypokalemia
+Furosemide,tinnitus
+Furosemide,dehydration
+Hydrochlorothiazide,dizziness
+Hydrochlorothiazide,hypokalemia
+Hydrochlorothiazide,photosensitivity
+Hydrochlorothiazide,hyperglycemia
+Hydrochlorothiazide,hypotension
+Amiodarone,photosensitivity
+Amiodarone,tremor
+Amiodarone,fatigue
+Amiodarone,nausea
+Amiodarone,visual disturbance
+Apixaban,bleeding
+Apixaban,bruising
+Apixaban,nausea
+Apixaban,anemia
+Rivaroxaban,bleeding
+Rivaroxaban,bruising
+Rivaroxaban,nausea
+Rivaroxaban,dizziness
+Empagliflozin,nausea
+Empagliflozin,dizziness
+Empagliflozin,hypoglycemia
+Empagliflozin,dehydration
+Glipizide,hypoglycemia
+Glipizide,nausea
+Glipizide,dizziness
+Glipizide,weight gain
+Pioglitazone,weight gain
+Pioglitazone,fluid retention
+Pioglitazone,peripheral edema
+Pioglitazone,headache
+Fluconazole,headache
+Fluconazole,nausea
+Fluconazole,abdominal pain
+Fluconazole,dizziness
+Fluconazole,elevated liver enzymes
+Acyclovir,nausea
+Acyclovir,headache
+Acyclovir,dizziness
+Acyclovir,rash
+Oseltamivir,nausea
+Oseltamivir,vomiting
+Oseltamivir,headache
+Oseltamivir,diarrhea
+Metronidazole,nausea
+Metronidazole,metallic taste
+Metronidazole,headache
+Metronidazole,dizziness
+Doxycycline,photosensitivity
+Doxycycline,nausea
+Doxycycline,diarrhea
+Doxycycline,abdominal pain
+Hydroxychloroquine,nausea
+Hydroxychloroquine,headache
+Hydroxychloroquine,visual disturbance
+Hydroxychloroquine,rash
+Hydroxychloroquine,diarrhea
+Allopurinol,rash
+Allopurinol,nausea
+Allopurinol,diarrhea
+Allopurinol,elevated liver enzymes
+Alendronate,abdominal pain
+Alendronate,nausea
+Alendronate,dyspepsia
+Alendronate,diarrhea
+Methimazole,rash
+Methimazole,nausea
+Methimazole,elevated liver enzymes
+Methimazole,dizziness
+Ezetimibe,diarrhea
+Ezetimibe,abdominal pain
+Ezetimibe,fatigue
+Ezetimibe,myalgia
+Donepezil,nausea
+Donepezil,diarrhea
+Donepezil,insomnia
+Donepezil,dizziness
+Donepezil,leg cramps
+Pramipexole,nausea
+Pramipexole,dizziness
+Pramipexole,somnolence
+Pramipexole,hallucinations
+Pramipexole,peripheral edema
+Levodopa,nausea
+Levodopa,dizziness
+Levodopa,hypotension
+Levodopa,hallucinations
+Levodopa,insomnia
+Sumatriptan,paresthesia
+Sumatriptan,flushing
+Sumatriptan,dizziness
+Sumatriptan,fatigue
+Sumatriptan,nausea
+Cyclobenzaprine,somnolence
+Cyclobenzaprine,dry mouth
+Cyclobenzaprine,dizziness
+Cyclobenzaprine,fatigue
+Oxybutynin,dry mouth
+Oxybutynin,constipation
+Oxybutynin,blurred vision
+Oxybutynin,urinary retention
+Oxybutynin,dizziness
+Ondansetron,headache
+Ondansetron,constipation
+Ondansetron,dizziness
+Ondansetron,fatigue
+Amitriptyline,dry mouth
+Amitriptyline,somnolence
+Amitriptyline,weight gain
+Amitriptyline,constipation
+Amitriptyline,blurred vision
+Amitriptyline,dizziness
+Lamotrigine,rash
+Lamotrigine,dizziness
+Lamotrigine,headache
+Lamotrigine,visual disturbance
+Lamotrigine,insomnia
+Cetirizine,somnolence
+Cetirizine,dry mouth
+Cetirizine,fatigue
+Cetirizine,headache
+Pseudoephedrine,insomnia
+Pseudoephedrine,tachycardia
+Pseudoephedrine,anxiety
+Pseudoephedrine,dizziness
+Pseudoephedrine,hypertension
+Lidocaine,dizziness
+Lidocaine,somnolence
+Lidocaine,tinnitus
+Lidocaine,paresthesia
+Naloxone,nausea
+Naloxone,vomiting
+Naloxone,dizziness
+Naloxone,tachycardia
+Loperamide,constipation
+Loperamide,dizziness
+Loperamide,abdominal pain
+Loperamide,nausea

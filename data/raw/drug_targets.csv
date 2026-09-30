@@ -66,3 +66,42 @@ Ketamine,NMDA receptor (glutamate-gated ion channel),NMDA receptor
 Spironolactone,Mineralocorticoid receptor (aldosterone antagonist),Mineralocorticoid receptor
 Ramipril,Angiotensin-converting enzyme (ACE),Angiotensin-converting enzyme (ACE)
 Estradiol,Estrogen receptor (agonist),Estrogen receptor (agonist)
+Atenolol,Beta-1 adrenergic receptor,Beta-1 adrenergic receptor
+Carvedilol,Beta-adrenergic receptor (non-selective) / alpha-1 receptor,Beta-adrenergic receptor (non-selective)
+Diltiazem,L-type calcium channel (Cav1.2),L-type calcium channel
+Verapamil,L-type calcium channel (Cav1.2),L-type calcium channel
+Clonidine,Alpha-2 adrenergic receptor,Alpha-2 adrenergic receptor
+Tamsulosin,Alpha-1 adrenergic receptor,Alpha-1 adrenergic receptor
+Doxazosin,Alpha-1 adrenergic receptor,Alpha-1 adrenergic receptor
+Furosemide,Na-K-Cl cotransporter (NKCC2),Na-K-Cl cotransporter (NKCC2)
+Hydrochlorothiazide,Na-Cl cotransporter (NCC),Na-Cl cotransporter (NCC)
+Amiodarone,Multiple cardiac ion channels,Multiple cardiac ion channels (multi-target)
+Apixaban,Factor Xa,Factor Xa
+Rivaroxaban,Factor Xa,Factor Xa
+Empagliflozin,Sodium-glucose cotransporter 2 (SGLT2),Sodium-glucose cotransporter 2 (SGLT2)
+Glipizide,"Sulfonylurea receptor (KATP channel, SUR1)","Sulfonylurea receptor (KATP channel, SUR1)"
+Pioglitazone,PPAR-gamma,PPAR-gamma
+Fluconazole,Fungal CYP51 (lanosterol demethylase),Fungal CYP51 (lanosterol demethylase)
+Acyclovir,Viral DNA polymerase,Viral DNA polymerase
+Oseltamivir,Viral neuraminidase,Viral neuraminidase
+Metronidazole,Anaerobic DNA (nitro radical damage),Anaerobic DNA (nitro radical damage)
+Doxycycline,Bacterial 30S ribosomal subunit,Bacterial ribosome (30S)
+Hydroxychloroquine,Toll-like receptor / lysosomal pH (multi-target),Toll-like receptor / lysosomal pH (multi-target)
+Allopurinol,Xanthine oxidase,Xanthine oxidase
+Alendronate,Farnesyl pyrophosphate synthase (osteoclast),Farnesyl pyrophosphate synthase (osteoclast)
+Methimazole,Thyroid peroxidase,Thyroid peroxidase
+Ezetimibe,NPC1L1 (cholesterol transporter),NPC1L1 (cholesterol transporter)
+Donepezil,Acetylcholinesterase,Acetylcholinesterase
+Pramipexole,Dopamine D2/D3 receptor (agonist),Dopamine D2/D3 receptor (agonist)
+Levodopa,Dopamine precursor (converted to dopamine by DOPA decarboxylase),Dopamine precursor (multi-target)
+Sumatriptan,Serotonin 5-HT1B/1D receptor (agonist),Serotonin 5-HT1B/1D receptor (agonist)
+Cyclobenzaprine,Brainstem alpha-adrenergic modulation (multi-target),Brainstem alpha-adrenergic modulation (multi-target)
+Oxybutynin,Muscarinic acetylcholine receptor (M3),Muscarinic acetylcholine receptor (M3)
+Ondansetron,Serotonin 5-HT3 receptor (antagonist),Serotonin 5-HT3 receptor (antagonist)
+Amitriptyline,Monoamine reuptake transporter (multi-target),"Monoamine reuptake transporter (TCA, multi-target)"
+Lamotrigine,Voltage-gated sodium channel (neuronal),Voltage-gated sodium channel (neuronal)
+Cetirizine,Histamine H1 receptor,Histamine H1 receptor
+Pseudoephedrine,Alpha/beta adrenergic receptor (releasing agent),Alpha/beta adrenergic receptor (releasing agent)
+Lidocaine,"Voltage-gated sodium channel (neuronal, local)","Voltage-gated sodium channel (neuronal, local)"
+Naloxone,Mu-opioid receptor (antagonist),Mu-opioid receptor
+Loperamide,Mu-opioid receptor (peripherally restricted),Mu-opioid receptor
