@@ -8,7 +8,9 @@ shared underlying biological mechanism.
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
+from typing import Callable, TypeVar
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -220,22 +222,38 @@ def inject_css() -> None:
             width: 2.5rem !important;
             height: 2.5rem !important;
             border: none !important;
+            position: relative;
             display: flex !important;
             align-items: center;
             justify-content: center;
-            animation: sm-pill-shake 0.6s ease-in-out infinite !important;
+            animation: sm-bottle-shake 0.5s ease-in-out infinite !important;
         }
         div[data-testid="stSpinner"] [data-testid="stSpinnerIcon"]::before {
-            content: "💊";
-            font-size: 2.2rem;
+            content: "🫙";
+            font-size: 2.3rem;
             line-height: 1;
         }
-        @keyframes sm-pill-shake {
-            0%, 100% { transform: rotate(0deg); }
-            20% { transform: rotate(-18deg); }
-            40% { transform: rotate(14deg); }
-            60% { transform: rotate(-10deg); }
-            80% { transform: rotate(6deg); }
+        div[data-testid="stSpinner"] [data-testid="stSpinnerIcon"]::after {
+            content: "💊💊💊";
+            position: absolute;
+            top: 0.55rem;
+            left: 50%;
+            font-size: 0.5rem;
+            letter-spacing: -0.15rem;
+            animation: sm-pills-rattle 0.35s ease-in-out infinite;
+        }
+        @keyframes sm-bottle-shake {
+            0%, 100% { transform: rotate(0deg) translateX(0); }
+            20% { transform: rotate(-10deg) translateX(-2px); }
+            40% { transform: rotate(8deg) translateX(2px); }
+            60% { transform: rotate(-6deg) translateX(-1px); }
+            80% { transform: rotate(5deg) translateX(1px); }
+        }
+        @keyframes sm-pills-rattle {
+            0%, 100% { transform: translate(-50%, 0) rotate(0deg); }
+            25% { transform: translate(calc(-50% - 1.5px), -0.5px) rotate(-10deg); }
+            50% { transform: translate(calc(-50% + 1.5px), 0.5px) rotate(8deg); }
+            75% { transform: translate(calc(-50% - 1px), -0.5px) rotate(-5deg); }
         }
         div[data-testid="stSpinner"] p {
             font-size: 1.1rem;
@@ -249,16 +267,36 @@ def inject_css() -> None:
     )
 
 
+_T = TypeVar("_T")
+
+MIN_SPINNER_SECONDS = 0.6
+
+
+def _with_min_spinner(message: str, fn: Callable[[], _T]) -> _T:
+    """Run `fn` under a spinner, padding fast results up to a minimum
+    display time so the loading state is actually visible rather than
+    flashing by in the same frame it appears in.
+    """
+    with st.spinner(message):
+        start = time.monotonic()
+        result = fn()
+        remaining = MIN_SPINNER_SECONDS - (time.monotonic() - start)
+        if remaining > 0:
+            time.sleep(remaining)
+        return result
+
+
 @st.cache_data
 def get_matrix() -> pd.DataFrame:
-    with st.spinner("Loading the drug dataset..."):
-        return load_matrix()
+    return _with_min_spinner("Loading the drug dataset...", load_matrix)
 
 
 @st.cache_data
 def get_similarity(_matrix: pd.DataFrame, metric: str, weighted: bool = False) -> pd.DataFrame:
-    with st.spinner("Comparing side-effect profiles..."):
-        return similarity_matrix(_matrix, metric=metric, weighted=weighted)
+    return _with_min_spinner(
+        "Comparing side-effect profiles...",
+        lambda: similarity_matrix(_matrix, metric=metric, weighted=weighted),
+    )
 
 
 @st.cache_data
@@ -283,21 +321,23 @@ def get_categories() -> pd.DataFrame:
 
 @st.cache_data
 def get_pca(_matrix: pd.DataFrame) -> pd.DataFrame:
-    with st.spinner("Running PCA..."):
-        return pca_projection(_matrix)
+    return _with_min_spinner("Running PCA...", lambda: pca_projection(_matrix))
 
 
 @st.cache_data
 def get_tsne(_matrix: pd.DataFrame) -> pd.DataFrame:
-    with st.spinner("Running t-SNE (this can take a few seconds)..."):
-        return tsne_projection(_matrix)
+    return _with_min_spinner(
+        "Running t-SNE (this can take a few seconds)...", lambda: tsne_projection(_matrix)
+    )
 
 
 @st.cache_data
 def get_clusters(_matrix: pd.DataFrame, n_clusters: int, method: str) -> pd.Series:
     method_label = "K-means" if method == "kmeans" else "hierarchical"
-    with st.spinner(f"Running {method_label} clustering..."):
-        return cluster_drugs(_matrix, n_clusters=n_clusters, method=method)
+    return _with_min_spinner(
+        f"Running {method_label} clustering...",
+        lambda: cluster_drugs(_matrix, n_clusters=n_clusters, method=method),
+    )
 
 
 def pathway_badge_html(query: str, other: str, targets: pd.DataFrame) -> str:
