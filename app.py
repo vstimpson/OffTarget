@@ -217,16 +217,16 @@ def inject_css() -> None:
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 0.75rem;
-            padding: 2rem 2.5rem;
-            background: #F0FDFA;
-            border: 1px solid #5EEAD4;
-            border-radius: 14px;
-            box-shadow: 0 10px 40px rgba(15, 118, 110, 0.25);
+            gap: 0.5rem;
+            padding: 0;
+            background: transparent;
+            border: none;
+            border-radius: 0;
+            box-shadow: none;
         }
         div[data-testid="stSpinner"] [data-testid="stSpinnerIcon"] {
-            width: 2.5rem !important;
-            height: 2.5rem !important;
+            width: 5rem !important;
+            height: 5rem !important;
             border: none !important;
             position: relative;
             display: flex !important;
@@ -236,16 +236,17 @@ def inject_css() -> None:
         }
         div[data-testid="stSpinner"] [data-testid="stSpinnerIcon"]::before {
             content: "🫙";
-            font-size: 2.3rem;
+            font-size: 4.5rem;
             line-height: 1;
+            filter: drop-shadow(0 6px 12px rgba(15, 118, 110, 0.35));
         }
         div[data-testid="stSpinner"] [data-testid="stSpinnerIcon"]::after {
             content: "💊💊💊";
             position: absolute;
-            top: 0.55rem;
+            top: 1.1rem;
             left: 50%;
-            font-size: 0.5rem;
-            letter-spacing: -0.15rem;
+            font-size: 1rem;
+            letter-spacing: -0.3rem;
             animation: sm-pills-rattle 0.35s ease-in-out infinite;
         }
         @keyframes sm-bottle-shake {
@@ -261,11 +262,8 @@ def inject_css() -> None:
             50% { transform: translate(calc(-50% + 1.5px), 0.5px) rotate(8deg); }
             75% { transform: translate(calc(-50% - 1px), -0.5px) rotate(-5deg); }
         }
-        div[data-testid="stSpinner"] p {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #0F766E;
-            margin: 0;
+        div[data-testid="stSpinner"] [data-testid="stMarkdownContainer"] {
+            display: none;
         }
         </style>
         """,
